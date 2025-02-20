@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="TaskFlow - A modern task management application to boost your productivity" />
+    <meta name="keywords" content="task management, todo list, productivity, organization" />
+    <meta name="author" content="Aniket Kumar" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>TaskFlow - A Modern Task Management App</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="image/icon.png" type="image/x-icon" />
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- Main Container -->
+    <div class="container">
+
+        <!-- App Header -->
+        <header class="app-header">
+            <div class="logo-section">
+                <h2>📝 TaskFlow</h2>
+            </div>
+            <div class="header-controls">
+                <!-- Task Count Display -->
+                <div class="task-count-wrapper">
+                    <i class="fas fa-clipboard-list task-icon"></i>
+                    <span class="task-badge" id="taskCount">0</span>
+                </div>
+
+                <!-- Theme Switch Button -->
+                <button id="theme-switch" class="theme-switch" aria-label="Toggle theme">
+                    <div class="theme-switch-icon">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                </button>
+
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+
+            <!-- Menu Navigation -->
+            <div class="menu-container">
+                <div class="menu">
+                    <button class="menu-btn view active" data-view="tasks">
+                        <span class="icon">📋</span>
+                        <span class="text">My Tasks</span>
+                    </button>
+                    <button class="menu-btn add" data-view="add">
+                        <span class="icon">➕</span>
+                        <span class="text">New Task</span>
+                    </button>
+                    <button class="menu-btn statistics" data-view="statistics">
+                        <span class="icon">📊</span>
+                        <span class="text">Statistics</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- View Container (Tasks, Add Task, etc.) -->
+            <div class="view-container">
+
+                <!-- Tasks View -->
+                <div class="view-section" id="tasks-view">
+                    <div class="task-filters">
+                        <div class="search-bar">
+                            <input type="text" id="search-input" placeholder="Search tasks...">
+                        </div>
+                        <div class="filter-options">
+                            <select id="priority-filter">
+                                <option value="all">All Priorities</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                            <select id="category-filter">
+                                <option value="all">All Categories</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="tasks-list" id="tasks"></div>
+                </div>
+
+                <!-- Add Task View -->
+                <div class="view-section hidden" id="add-task-view">
+                    <form id="task-form">
+                        <div class="form-group">
+                            <input type="text" id="task-title" placeholder="Task Title" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="task-description" placeholder="Task Description"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <select id="task-category" required>
+                                <option value="">Select Category</option>
+                                <option value="work">Work</option>
+                                <option value="personal">Personal</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="others">Others</option>
+                            </select>
+                            <select id="task-priority" required>
+                                <option value="low">Low Priority</option>
+                                <option value="medium">Medium Priority</option>
+                                <option value="high">High Priority</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <input type="date" id="task-due-date" required>
+                            <input type="time" id="task-due-time">
+                        </div>
+                        <button type="submit" class="submit-btn">Create Task</button>
+                    </form>
+                </div>
+
+                <!-- Statistics View -->
+                <div class="view-section hidden" id="statistics-view">
+                    <div class="statistics-header">
+                        <h2>Task Statistics</h2>
+                        <div class="date-filter">
+                            <button class="date-filter-btn active" data-period="all">All Time</button>
+                            <button class="date-filter-btn" data-period="week">This Week</button>
+                            <button class="date-filter-btn" data-period="month">This Month</button>
+                        </div>
+                    </div>
+
+                    <div class="statistics-grid">
+                        <!-- Main Stats Cards -->
+                        <div class="stat-card total">
+                            <div class="stat-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-header">
+                                    <h3>Total Tasks</h3>
+                                </div>
+                                <div class="stat-value" id="total-tasks-count">0</div>
+                                <div class="stat-footer">
+                                    <span class="stat-label">Active Projects</span>
+                                    <span class="stat-sublabel" id="active-projects">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card completed">
+                            <div class="stat-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-header">
+                                    <h3>Completed</h3>
+                                </div>
+                                <div class="stat-value" id="completed-tasks-count">0</div>
+                                <div class="stat-footer">
+                                    <div class="completion-rate">
+                                        <div class="progress-bar">
+                                            <div class="progress" id="completion-progress"></div>
+                                        </div>
+                                        <span class="progress-label" id="completion-rate">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card pending">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-header">
+                                    <h3>Pending</h3>
+                                </div>
+                                <div class="stat-value" id="pending-tasks-count">0</div>
+                                <div class="stat-footer">
+                                    <span class="stat-label">Due Soon</span>
+                                    <span class="stat-sublabel" id="due-soon-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card overdue">
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-header">
+                                    <h3>Overdue</h3>
+                                </div>
+                                <div class="stat-value" id="overdue-tasks-count">0</div>
+                                <div class="stat-footer">
+                                    <span class="stat-label">Critical</span>
+                                    <span class="stat-sublabel" id="critical-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Statistics -->
+                    <div class="detailed-stats">
+                        <div class="stats-row">
+                            <!-- Priority Distribution -->
+                            <div class="stats-card">
+                                <h3>Priority Distribution</h3>
+                                <div class="priority-chart">
+                                    <div class="priority-bar-container">
+                                        <div class="priority-label">High</div>
+                                        <div class="priority-bar">
+                                            <div class="bar high" id="high-priority-bar"></div>
+                                        </div>
+                                        <div class="priority-count" id="high-priority-count">0</div>
+                                    </div>
+                                    <div class="priority-bar-container">
+                                        <div class="priority-label">Medium</div>
+                                        <div class="priority-bar">
+                                            <div class="bar medium" id="medium-priority-bar"></div>
+                                        </div>
+                                        <div class="priority-count" id="medium-priority-count">0</div>
+                                    </div>
+                                    <div class="priority-bar-container">
+                                        <div class="priority-label">Low</div>
+                                        <div class="priority-bar">
+                                            <div class="bar low" id="low-priority-bar"></div>
+                                        </div>
+                                        <div class="priority-count" id="low-priority-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                    <!-- Category Distribution and Timeline -->
+                    <div class="stats-row">
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <h3>Category Distribution</h3>
+                            </div>
+                            <div class="chart-container">
+                                <div id="categoryChart"></div>
+                            </div>
+                        </div>
+
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <h3>Task Completion Timeline</h3>
+                                <div class="timeline-filter">
+                                    <button class="timeline-btn active" data-range="week">Week</button>
+                                    <button class="timeline-btn" data-range="month">Month</button>
+                                    <button class="timeline-btn" data-range="year">Year</button>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <div id="timelineChart"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+        </div> <!-- End View Container -->
+    </div> <!-- End Main Content -->
+    </div> <!-- End Main Container -->
+
+    <!-- Chart.js library (if needed for statistics) -->
+     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Custom JavaScript -->
+    <script src="script.js"></script>
+</body>
+
+</html>
