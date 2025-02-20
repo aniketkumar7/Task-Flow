@@ -188,25 +188,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Handle Empty State
         if (filteredTasks.length === 0) {
-            tasksList.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-container">
-                    <div class="empty-state-icon">
-                        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" stroke-width="2"/>
-                            <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M9 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-                    <h3 class="empty-state-title">No Tasks Found</h3>
-                    <p class="empty-state-description">There are no tasks matching your criteria. Try adjusting your filters or create a new task.</p>
-                    <button onclick="switchView('add')" class="empty-state-button">
-                        <i class="fas fa-plus"></i>
-                        Add New Task
-                    </button>
-                </div>
-            </div>`;
+            tasksList.innerHTML =
+                '<div class="empty-state">' +
+                '<div class="empty-state-container">' +
+                '<div class="empty-state-icon">' +
+                '<svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                '<path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+                '<path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" stroke-width="2"/>' +
+                '<path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+                '<path d="M9 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+                "</svg>" +
+                "</div>" +
+                '<h3 class="empty-state-title">No Tasks Found</h3>' +
+                '<p class="empty-state-description">There are no tasks matching your criteria. Try adjusting your filters or create a new task.</p>' +
+                '<button class="empty-state-button" id="addNewTaskBtn">' +
+                '<i class="fas fa-plus"></i>' +
+                "Add New Task" +
+                "</button>" +
+                "</div>" +
+                "</div>";
+
+            // Add event listener after creating the button
+            const addNewTaskBtn = document.getElementById("addNewTaskBtn");
+            if (addNewTaskBtn) {
+                addNewTaskBtn.addEventListener("click", () => {
+                    switchView("add");
+                });
+            }
             return;
         }
 
