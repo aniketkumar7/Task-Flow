@@ -4,276 +4,318 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="TaskFlow - A modern task management application to boost your productivity" />
-    <meta name="keywords" content="task management, todo list, productivity, organization" />
+    <meta name="description" content="TaskFlow - a minimal task tracker" />
+    <meta name="keywords" content="task management, todo list, productivity" />
     <meta name="author" content="Aniket Kumar" />
-    <meta name="theme-color" content="#2563eb" />
-    <title>TaskFlow - A Modern Task Management App</title>
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <title>TaskFlow</title>
 
     <!-- Favicon -->
-    <link rel="icon" href="image/icon.png" type="image/x-icon" />
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" href="image/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="image/icon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="image/icon.png" />
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-    <!-- Main Container -->
-    <div class="container">
-
-        <!-- App Header -->
-        <header class="app-header">
-            <div class="logo-section">
-                <h2>📝 TaskFlow</h2>
-            </div>
-            <div class="header-controls">
-                <!-- Task Count Display -->
-                <div class="task-count-wrapper">
-                    <i class="fas fa-clipboard-list task-icon"></i>
-                    <span class="task-badge" id="taskCount">0</span>
+    <main class="app">
+        <header class="hero" aria-label="TaskFlow">
+            <div class="hero-top">
+                <div class="hero-brand">
+                    <span class="brand-lockup" aria-label="TaskFlow">
+                        <img class="brand-mark" src="image/icon.svg" alt="" aria-hidden="true" />
+                        <span class="brand-name">TaskFlow</span>
+                    </span>
                 </div>
-
-                <!-- Theme Switch Button -->
-                <button id="theme-switch" class="theme-switch" aria-label="Toggle theme">
-                    <div class="theme-switch-icon">
-                        <i class="fas fa-moon"></i>
-                    </div>
+                <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle theme">
+                    <span class="icon" aria-hidden="true" id="themeIcon">☾</span>
                 </button>
+            </div>
 
+            <h1 class="hero-title">
+                Track
+                <span class="pill pink">
+                    <span class="pill-glyph" aria-hidden="true">
+                        <span class="pill-dot"></span>
+                    </span>
+                    <span class="pill-label">TASKS</span>
+                </span>,
+                and stay 
+                <span class="pill green">
+                    <span class="pill-glyph" aria-hidden="true">
+                        <span class="pill-dot"></span>
+                    </span>
+                    <span class="pill-label">FOCUSED.</span>
+                </span>
+            </h1>
+
+            <div class="hero-sub">
+                Minimal. Fast. Local-first.
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <div class="main-content">
+        <section class="composer" aria-label="Add task">
+            <form id="quickAddForm" class="composer-row" autocomplete="off">
+                <input id="quickAddInput" class="input" type="text" placeholder="Add a task… (Enter)" aria-describedby="addError" />
+            </form>
+            <div class="form-error" id="addError" role="status" aria-live="polite"></div>
+            <div class="composer-extra" aria-label="Task details">
+                <div class="dropdown" id="priorityDropdown">
+                    <button id="priorityBtn" class="drop-btn" type="button" aria-haspopup="listbox"
+                        aria-expanded="false">
+                        <span class="drop-value" id="priorityValue">Priority: Medium</span>
+                        <span class="drop-caret" aria-hidden="true"></span>
+                    </button>
+                    <div id="priorityMenu" class="drop-menu" role="listbox" aria-label="Priority" tabindex="-1">
+                        <button class="drop-item" type="button" role="option" aria-selected="false"
+                            data-value="high">Priority: High</button>
+                        <button class="drop-item is-active" type="button" role="option" aria-selected="true"
+                            data-value="medium">Priority: Medium</button>
+                        <button class="drop-item" type="button" role="option" aria-selected="false"
+                            data-value="low">Priority: Low</button>
+                    </div>
+                </div>
+                <div class="due-time">
+                    <div class="dropdown datepick" id="dueDropdown">
+                        <button id="dueBtn" class="drop-btn" type="button" aria-haspopup="dialog"
+                            aria-expanded="false">
+                            <span class="drop-value" id="dueValue">Due: None</span>
+                            <span class="drop-caret" aria-hidden="true"></span>
+                        </button>
+                        <div id="dueMenu" class="date-menu" role="dialog" aria-label="Pick due date" tabindex="-1">
+                            <div class="date-head">
+                                <button class="btn date-nav" type="button" id="duePrev"
+                                    aria-label="Previous month">‹</button>
+                                <div class="date-month" id="dueMonth">Month</div>
+                                <button class="btn date-nav" type="button" id="dueNext" aria-label="Next month">›</button>
+                            </div>
+                            <div class="date-dow">
+                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                            </div>
+                            <div class="date-grid" id="dueGrid"></div>
+                            <div class="date-actions">
+                                <button class="btn" type="button" id="dueToday">Today</button>
+                                <button class="btn danger" type="button" id="dueClear">Clear</button>
+                            </div>
+                        </div>
+                        <input id="dueInput" type="hidden" />
+                    </div>
+                    <div class="dropdown timepick" id="timeDropdown">
+                        <button id="timeBtn" class="drop-btn" type="button" aria-haspopup="dialog"
+                            aria-expanded="false">
+                            <span class="drop-value" id="timeValue">Time: None</span>
+                            <span class="drop-caret" aria-hidden="true"></span>
+                        </button>
+                        <div id="timeMenu" class="time-menu" role="dialog" aria-label="Pick time" tabindex="-1">
+                            <div class="time-top">
+                                <div class="time-hhmm" aria-label="Time">
+                                    <input id="timeHour" class="input time-box" inputmode="numeric" placeholder="HH"
+                                        aria-label="Hour" />
+                                    <span class="time-sep" aria-hidden="true">:</span>
+                                    <input id="timeMinute" class="input time-box" inputmode="numeric" placeholder="MM"
+                                        aria-label="Minute" />
+                                </div>
+                                <div class="ampm" role="group" aria-label="AM/PM">
+                                    <button class="ampm-btn is-on" type="button" id="timeAM" aria-pressed="true">AM</button>
+                                    <button class="ampm-btn" type="button" id="timePM" aria-pressed="false">PM</button>
+                                </div>
+                                <button class="btn danger" type="button" id="timeClear">Clear</button>
+                            </div>
+                        </div>
+                        <input id="timeInput" type="hidden" />
+                    </div>
+                </div>
+                <button id="addBtn" class="btn primary" type="submit" form="quickAddForm" disabled>Add</button>
+            </div>
+            <div class="composer-hint" id="composerHint">
+                Tip: Press <kbd>/</kbd> to search, <kbd>n</kbd> to focus “Add”.
+            </div>
+        </section>
 
-            <!-- Menu Navigation -->
-            <div class="menu-container">
-                <div class="menu">
-                    <button class="menu-btn view active" data-view="tasks">
-                        <span class="icon">📋</span>
-                        <span class="text">My Tasks</span>
+        <section class="controls" aria-label="Task controls">
+            <div class="controls-left">
+                <div class="segmented" role="tablist" aria-label="Filter">
+                    <button class="seg-btn is-active" type="button" data-filter="all" role="tab"
+                        aria-selected="true">
+                        <span>All</span>
+                        <span class="seg-count" id="countAll">0</span>
                     </button>
-                    <button class="menu-btn add" data-view="add">
-                        <span class="icon">➕</span>
-                        <span class="text">New Task</span>
+                    <button class="seg-btn" type="button" data-filter="active" role="tab"
+                        aria-selected="false">
+                        <span>Active</span>
+                        <span class="seg-count" id="countActive">0</span>
                     </button>
-                    <button class="menu-btn statistics" data-view="statistics">
-                        <span class="icon">📊</span>
-                        <span class="text">Statistics</span>
+                    <button class="seg-btn" type="button" data-filter="done" role="tab"
+                        aria-selected="false">
+                        <span>Done</span>
+                        <span class="seg-count" id="countDone">0</span>
                     </button>
                 </div>
             </div>
-
-            <!-- View Container (Tasks, Add Task, etc.) -->
-            <div class="view-container">
-
-                <!-- Tasks View -->
-                <div class="view-section" id="tasks-view">
-                    <div class="task-filters">
-                        <div class="search-bar">
-                            <input type="text" id="search-input" placeholder="Search tasks...">
-                        </div>
-                        <div class="filter-options">
-                            <select id="priority-filter">
-                                <option value="all">All Priorities</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </select>
-                            <select id="category-filter">
-                                <option value="all">All Categories</option>
-                            </select>
-                        </div>
+            <div class="controls-right">
+                <input id="searchInput" class="input search" type="search" placeholder="Search…" />
+                <div class="dropdown" id="priorityFilterDropdown">
+                    <button id="priorityFilterBtn" class="drop-btn" type="button" aria-haspopup="listbox"
+                        aria-expanded="false">
+                        <span class="drop-value" id="priorityFilterValue">All</span>
+                        <span class="drop-caret" aria-hidden="true"></span>
+                    </button>
+                    <div id="priorityFilterMenu" class="drop-menu" role="listbox" aria-label="Priority filter"
+                        tabindex="-1">
+                        <button class="drop-item is-active" type="button" role="option" aria-selected="true"
+                            data-value="all">All</button>
+                        <button class="drop-item" type="button" role="option" aria-selected="false"
+                            data-value="high">High</button>
+                        <button class="drop-item" type="button" role="option" aria-selected="false"
+                            data-value="medium">Medium</button>
+                        <button class="drop-item" type="button" role="option" aria-selected="false"
+                            data-value="low">Priority: Low</button>
                     </div>
-                    <div class="tasks-list" id="tasks"></div>
                 </div>
-
-                <!-- Add Task View -->
-                <div class="view-section hidden" id="add-task-view">
-                    <form id="task-form">
-                        <div class="form-group">
-                            <input type="text" id="task-title" placeholder="Task Title" required>
-                        </div>
-                        <div class="form-group">
-                            <textarea id="task-description" placeholder="Task Description"></textarea>
-                        </div>
-                        <div class="form-row">
-                            <select id="task-category" required>
-                                <option value="">Select Category</option>
-                                <option value="work">Work</option>
-                                <option value="personal">Personal</option>
-                                <option value="shopping">Shopping</option>
-                                <option value="others">Others</option>
-                            </select>
-                            <select id="task-priority" required>
-                                <option value="low">Low Priority</option>
-                                <option value="medium">Medium Priority</option>
-                                <option value="high">High Priority</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <input type="date" id="task-due-date" required>
-                            <input type="time" id="task-due-time">
-                        </div>
-                        <button type="submit" class="submit-btn">Create Task</button>
-                    </form>
-                </div>
-
-                <!-- Statistics View -->
-                <div class="view-section hidden" id="statistics-view">
-                    <div class="statistics-header">
-                        <h2>Task Statistics</h2>
-                        <div class="date-filter">
-                            <button class="date-filter-btn active" data-period="all">All Time</button>
-                            <button class="date-filter-btn" data-period="week">This Week</button>
-                            <button class="date-filter-btn" data-period="month">This Month</button>
-                        </div>
-                    </div>
-
-                    <div class="statistics-grid">
-                        <!-- Main Stats Cards -->
-                        <div class="stat-card total">
-                            <div class="stat-icon">
-                                <i class="fas fa-tasks"></i>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-header">
-                                    <h3>Total Tasks</h3>
-                                </div>
-                                <div class="stat-value" id="total-tasks-count">0</div>
-                                <div class="stat-footer">
-                                    <span class="stat-label">Active Projects</span>
-                                    <span class="stat-sublabel" id="active-projects">0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="stat-card completed">
-                            <div class="stat-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-header">
-                                    <h3>Completed</h3>
-                                </div>
-                                <div class="stat-value" id="completed-tasks-count">0</div>
-                                <div class="stat-footer">
-                                    <div class="completion-rate">
-                                        <div class="progress-bar">
-                                            <div class="progress" id="completion-progress"></div>
-                                        </div>
-                                        <span class="progress-label" id="completion-rate">0%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="stat-card pending">
-                            <div class="stat-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-header">
-                                    <h3>Pending</h3>
-                                </div>
-                                <div class="stat-value" id="pending-tasks-count">0</div>
-                                <div class="stat-footer">
-                                    <span class="stat-label">Due Soon</span>
-                                    <span class="stat-sublabel" id="due-soon-count">0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="stat-card overdue">
-                            <div class="stat-icon">
-                                <i class="fas fa-exclamation-circle"></i>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-header">
-                                    <h3>Overdue</h3>
-                                </div>
-                                <div class="stat-value" id="overdue-tasks-count">0</div>
-                                <div class="stat-footer">
-                                    <span class="stat-label">Critical</span>
-                                    <span class="stat-sublabel" id="critical-count">0</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Detailed Statistics -->
-                    <div class="detailed-stats">
-                        <div class="stats-row">
-                            <!-- Priority Distribution -->
-                            <div class="stats-card">
-                                <h3>Priority Distribution</h3>
-                                <div class="priority-chart">
-                                    <div class="priority-bar-container">
-                                        <div class="priority-label">High</div>
-                                        <div class="priority-bar">
-                                            <div class="bar high" id="high-priority-bar"></div>
-                                        </div>
-                                        <div class="priority-count" id="high-priority-count">0</div>
-                                    </div>
-                                    <div class="priority-bar-container">
-                                        <div class="priority-label">Medium</div>
-                                        <div class="priority-bar">
-                                            <div class="bar medium" id="medium-priority-bar"></div>
-                                        </div>
-                                        <div class="priority-count" id="medium-priority-count">0</div>
-                                    </div>
-                                    <div class="priority-bar-container">
-                                        <div class="priority-label">Low</div>
-                                        <div class="priority-bar">
-                                            <div class="bar low" id="low-priority-bar"></div>
-                                        </div>
-                                        <div class="priority-count" id="low-priority-count">0</div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                        </div>
-                    </div>
-
-                    <!-- Category Distribution and Timeline -->
-                    <div class="stats-row">
-                        <div class="stats-card">
-                            <div class="stats-card-header">
-                                <h3>Category Distribution</h3>
-                            </div>
-                            <div class="chart-container">
-                                <div id="categoryChart"></div>
-                            </div>
-                        </div>
-
-                        <div class="stats-card">
-                            <div class="stats-card-header">
-                                <h3>Task Completion Timeline</h3>
-                                <div class="timeline-filter">
-                                    <button class="timeline-btn active" data-range="week">Week</button>
-                                    <button class="timeline-btn" data-range="month">Month</button>
-                                    <button class="timeline-btn" data-range="year">Year</button>
-                                </div>
-                            </div>
-                            <div class="chart-container">
-                                <div id="timelineChart"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+                <button id="clearDoneBtn" class="btn" type="button">Clear done</button>
+                <button id="resetBtn" class="btn danger" type="button">Reset</button>
             </div>
+        </section>
 
+        <section class="list" aria-label="Tasks">
+            <div id="emptyState" class="empty is-hidden">
+                <div class="empty-title">No tasks.</div>
+                <div class="empty-sub">Add one above, or clear your search/filter.</div>
+            </div>
+            <ul id="taskList" class="task-list" aria-label="Task list"></ul>
+        </section>
 
-        </div> <!-- End View Container -->
-    </div> <!-- End Main Content -->
-    </div> <!-- End Main Container -->
+        <dialog id="editDialog" class="dialog">
+            <form method="dialog" id="editForm" class="dialog-card">
+                <div class="dialog-head">
+                    <div class="dialog-title">Edit task</div>
+                    <button class="icon-btn" value="cancel" aria-label="Close" type="submit">
+                        <span class="icon" aria-hidden="true">×</span>
+                    </button>
+                </div>
 
-    <!-- Chart.js library (if needed for statistics) -->
-     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <!-- Custom JavaScript -->
+                <label class="field">
+                    <span class="label">Title</span>
+                    <input id="editTitle" class="input" type="text" required />
+                </label>
+
+                <label class="field">
+                    <span class="label">Notes (optional)</span>
+                    <textarea id="editNotes" class="textarea" rows="3" placeholder="Keep it short."></textarea>
+                </label>
+
+                <div class="field-row">
+                    <label class="field">
+                        <span class="label">Priority</span>
+                        <div class="dropdown" id="editPriorityDropdown">
+                            <button id="editPriorityBtn" class="drop-btn" type="button" aria-haspopup="listbox"
+                                aria-expanded="false">
+                                <span class="drop-value" id="editPriorityValue">Priority: Medium</span>
+                                <span class="drop-caret" aria-hidden="true"></span>
+                            </button>
+                            <div id="editPriorityMenu" class="drop-menu" role="listbox" aria-label="Priority"
+                                tabindex="-1">
+                                <button class="drop-item" type="button" role="option" aria-selected="false"
+                                    data-value="high">Priority: High</button>
+                                <button class="drop-item is-active" type="button" role="option" aria-selected="true"
+                                    data-value="medium">Priority: Medium</button>
+                                <button class="drop-item" type="button" role="option" aria-selected="false"
+                                    data-value="low">Priority: Low</button>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="field">
+                        <span class="label">Due date</span>
+                        <div class="dropdown datepick" id="editDueDropdown">
+                            <button id="editDueBtn" class="drop-btn" type="button" aria-haspopup="dialog"
+                                aria-expanded="false">
+                                <span class="drop-value" id="editDueValue">Due: None</span>
+                                <span class="drop-caret" aria-hidden="true"></span>
+                            </button>
+                            <div id="editDueMenu" class="date-menu" role="dialog" aria-label="Pick due date"
+                                tabindex="-1">
+                                <div class="date-head">
+                                    <button class="btn date-nav" type="button" id="editDuePrev"
+                                        aria-label="Previous month">‹</button>
+                                    <div class="date-month" id="editDueMonth">Month</div>
+                                    <button class="btn date-nav" type="button" id="editDueNext"
+                                        aria-label="Next month">›</button>
+                                </div>
+                                <div class="date-dow">
+                                    <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                                </div>
+                                <div class="date-grid" id="editDueGrid"></div>
+                                <div class="date-actions">
+                                    <button class="btn" type="button" id="editDueToday">Today</button>
+                                    <button class="btn danger" type="button" id="editDueClear">Clear</button>
+                                </div>
+                            </div>
+                            <input id="editDue" type="hidden" />
+                        </div>
+                    </label>
+                    <label class="field">
+                        <span class="label">Time</span>
+                        <div class="dropdown timepick" id="editTimeDropdown">
+                            <button id="editTimeBtn" class="drop-btn" type="button" aria-haspopup="dialog"
+                                aria-expanded="false">
+                                <span class="drop-value" id="editTimeValue">Time: None</span>
+                                <span class="drop-caret" aria-hidden="true"></span>
+                            </button>
+                            <div id="editTimeMenu" class="time-menu" role="dialog" aria-label="Pick time" tabindex="-1">
+                                <div class="time-top">
+                                    <div class="time-hhmm" aria-label="Time">
+                                        <input id="editTimeHour" class="input time-box" inputmode="numeric" placeholder="HH"
+                                            aria-label="Hour" />
+                                        <span class="time-sep" aria-hidden="true">:</span>
+                                        <input id="editTimeMinute" class="input time-box" inputmode="numeric" placeholder="MM"
+                                            aria-label="Minute" />
+                                    </div>
+                                    <div class="ampm" role="group" aria-label="AM/PM">
+                                        <button class="ampm-btn is-on" type="button" id="editTimeAM" aria-pressed="true">AM</button>
+                                        <button class="ampm-btn" type="button" id="editTimePM" aria-pressed="false">PM</button>
+                                    </div>
+                                    <button class="btn danger" type="button" id="editTimeClear">Clear</button>
+                                </div>
+                            </div>
+                            <input id="editTime" type="hidden" />
+                        </div>
+                    </label>
+                </div>
+
+                <div class="dialog-actions">
+                    <button class="btn primary" value="save" type="submit" autofocus>Save</button>
+                    <button class="btn" value="cancel" type="submit">Cancel</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="confirmDialog" class="dialog">
+            <form method="dialog" id="confirmForm" class="dialog-card">
+                <div class="dialog-head">
+                    <div class="dialog-title" id="confirmTitle">Confirm</div>
+                    <button class="icon-btn" value="cancel" aria-label="Close" type="submit">
+                        <span class="icon" aria-hidden="true">×</span>
+                    </button>
+                </div>
+
+                <div class="confirm-body">
+                    <div class="confirm-icon" aria-hidden="true">!</div>
+                    <div class="confirm-copy">
+                        <div class="confirm-text" id="confirmText">Are you sure?</div>
+                        <div class="confirm-sub" id="confirmSub">This action can’t be undone.</div>
+                    </div>
+                </div>
+
+                <div class="dialog-actions">
+                    <button class="btn" value="cancel" type="submit">Cancel</button>
+                    <button id="confirmOk" class="btn danger" value="confirm" type="submit" autofocus>Delete</button>
+                </div>
+            </form>
+        </dialog>
+    </main>
+
     <script src="script.js"></script>
 </body>
 

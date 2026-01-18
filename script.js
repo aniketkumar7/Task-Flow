@@ -1,953 +1,1058 @@
-document.addEventListener("DOMContentLoaded", () => {
-    // ----------------------------------------------------------------------
-    // --- DOM Elements ---
-    // ----------------------------------------------------------------------
+(() => {
+  const STORAGE_KEY = "taskflow.tasks.v2";
+  const THEME_KEY = "theme";
 
-    const themeSwitch = document.getElementById("theme-switch");
-    const menuButtons = document.querySelectorAll(".menu-btn");
-    const tasksView = document.getElementById("tasks-view");
-    const addTaskView = document.getElementById("add-task-view");
-    const statisticsView = document.getElementById("statistics-view");
-    const searchInput = document.getElementById("search-input");
-    const priorityFilter = document.getElementById("priority-filter");
-    const categoryFilter = document.getElementById("category-filter");
-    const taskForm = document.getElementById("task-form");
-    const taskTitleInput = document.getElementById("task-title");
-    const taskDescriptionInput = document.getElementById("task-description");
-    const taskCategorySelect = document.getElementById("task-category");
-    const taskPrioritySelect = document.getElementById("task-priority");
-    const taskDueDateInput = document.getElementById("task-due-date");
-    const taskDueTimeInput = document.getElementById("task-due-time");
-    const tasksList = document.getElementById("tasks");
-    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+  /** @typedef {{id:number,title:string,notes:string,project?:string,priority:"low"|"medium"|"high",dueDate:string,dueTime:string,done:boolean,createdAt:string,updatedAt:string}} Task */
 
-    // ----------------------------------------------------------------------
-    // --- Variables ---
-    // ----------------------------------------------------------------------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    let categories = ["Work", "Personal", "Shopping", "Others"];
-    let currentView = "tasks"; // Tracks the currently active view
+  const els = {
+    themeToggle: $("#themeToggle"),
+    themeIcon: $("#themeIcon"),
 
-    // Define Task Statuses
-    const TaskStatus = {
-        PENDING: "pending",
-        IN_PROGRESS: "in-progress",
-        COMPLETED: "completed",
-        OVERDUE: "overdue",
-    };
+    quickAddForm: $("#quickAddForm"),
+    quickAddInput: $("#quickAddInput"),
+    addBtn: $("#addBtn"),
+    priorityInput: $("#priorityInput"), // legacy (may not exist)
+    dueInput: $("#dueInput"),
+    timeInput: $("#timeInput"),
+    timeDropdown: $("#timeDropdown"),
+    timeBtn: $("#timeBtn"),
+    timeMenu: $("#timeMenu"),
+    timeValue: $("#timeValue"),
+    timeHour: $("#timeHour"),
+    timeMinute: $("#timeMinute"),
+    timeAM: $("#timeAM"),
+    timePM: $("#timePM"),
+    timeClear: $("#timeClear"),
 
-    // ----------------------------------------------------------------------
-    // --- Theme Initialization and Handling ---
-    // ----------------------------------------------------------------------
+    priorityDropdown: $("#priorityDropdown"),
+    priorityBtn: $("#priorityBtn"),
+    priorityMenu: $("#priorityMenu"),
+    priorityValue: $("#priorityValue"),
 
-    const initializeTheme = () => {
-        const savedTheme = localStorage.getItem("theme");
-        const systemTheme = prefersDarkScheme.matches ? "dark" : "light";
-        const initialTheme = savedTheme || systemTheme;
+    dueDropdown: $("#dueDropdown"),
+    dueBtn: $("#dueBtn"),
+    dueMenu: $("#dueMenu"),
+    dueValue: $("#dueValue"),
+    dueGrid: $("#dueGrid"),
+    dueMonth: $("#dueMonth"),
+    duePrev: $("#duePrev"),
+    dueNext: $("#dueNext"),
+    dueToday: $("#dueToday"),
+    dueClear: $("#dueClear"),
 
-        document.documentElement.setAttribute("data-theme", initialTheme);
-        updateThemeIcon(initialTheme);
-    };
+    filterBtns: $$(".seg-btn"),
+    searchInput: $("#searchInput"),
+    priorityFilterDropdown: $("#priorityFilterDropdown"),
+    priorityFilterBtn: $("#priorityFilterBtn"),
+    priorityFilterMenu: $("#priorityFilterMenu"),
+    priorityFilterValue: $("#priorityFilterValue"),
 
-    const updateThemeIcon = (theme) => {
-        const icon = themeSwitch.querySelector("i");
-        if (theme === "dark") {
-            icon.classList.remove("fa-moon");
-            icon.classList.add("fa-sun");
-            themeSwitch.setAttribute("title", "Switch to light mode");
-        } else {
-            icon.classList.remove("fa-sun");
-            icon.classList.add("fa-moon");
-            themeSwitch.setAttribute("title", "Switch to dark mode");
-        }
-    };
+    taskList: $("#taskList"),
+    emptyState: $("#emptyState"),
+    counts: $("#counts"), // legacy (removed)
+    countAll: $("#countAll"),
+    countActive: $("#countActive"),
+    countDone: $("#countDone"),
+    clearDoneBtn: $("#clearDoneBtn"),
+    resetBtn: $("#resetBtn"),
 
-    themeSwitch.addEventListener("click", () => {
-        const currentTheme = document.documentElement.getAttribute("data-theme");
-        const newTheme = currentTheme === "dark" ? "light" : "dark";
+    editDialog: $("#editDialog"),
+    editForm: $("#editForm"),
+    editTitle: $("#editTitle"),
+    editNotes: $("#editNotes"),
+    editPriority: $("#editPriority"), // legacy (may not exist)
+    editDue: $("#editDue"),
+    editTime: $("#editTime"),
+    editTimeDropdown: $("#editTimeDropdown"),
+    editTimeBtn: $("#editTimeBtn"),
+    editTimeMenu: $("#editTimeMenu"),
+    editTimeValue: $("#editTimeValue"),
+    editTimeHour: $("#editTimeHour"),
+    editTimeMinute: $("#editTimeMinute"),
+    editTimeAM: $("#editTimeAM"),
+    editTimePM: $("#editTimePM"),
+    editTimeClear: $("#editTimeClear"),
 
-        document.documentElement.classList.add("theme-transition");
-        document.documentElement.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
-        updateThemeIcon(newTheme);
+    editPriorityDropdown: $("#editPriorityDropdown"),
+    editPriorityBtn: $("#editPriorityBtn"),
+    editPriorityMenu: $("#editPriorityMenu"),
+    editPriorityValue: $("#editPriorityValue"),
 
-        setTimeout(() => {
-            document.documentElement.classList.remove("theme-transition");
-        }, 300);
+    editDueDropdown: $("#editDueDropdown"),
+    editDueBtn: $("#editDueBtn"),
+    editDueMenu: $("#editDueMenu"),
+    editDueValue: $("#editDueValue"),
+    editDueGrid: $("#editDueGrid"),
+    editDueMonth: $("#editDueMonth"),
+    editDuePrev: $("#editDuePrev"),
+    editDueNext: $("#editDueNext"),
+    editDueToday: $("#editDueToday"),
+    editDueClear: $("#editDueClear"),
+
+    confirmDialog: $("#confirmDialog"),
+    confirmForm: $("#confirmForm"),
+    confirmTitle: $("#confirmTitle"),
+    confirmText: $("#confirmText"),
+    confirmSub: $("#confirmSub"),
+    confirmOk: $("#confirmOk"),
+  };
+
+  /** @type {{ tasks: Task[], filter: "all"|"active"|"done", q: string, priority: "all"|"low"|"medium"|"high", editingId: number|null, confirm: null | { type: "deleteTask"|"clearDone"|"resetAll", taskId?: number } }} */
+  const state = {
+    tasks: [],
+    filter: "all",
+    q: "",
+    priority: "all",
+    editingId: null,
+    confirm: null,
+  };
+  const PRIORITY_LABEL = {
+    high: "Priority: High",
+    medium: "Priority: Medium",
+    low: "Priority: Low",
+  };
+
+  const PRIORITY_FILTER_LABEL = {
+    all: "Priority: All",
+    high: "Priority: High",
+    medium: "Priority: Medium",
+    low: "Priority: Low",
+  };
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  function safeJsonParse(str) {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return null;
+    }
+  }
+
+  function normalizeTask(input) {
+    const t = /** @type {any} */ (input ?? {});
+    const id = typeof t.id === "number" ? t.id : Date.now();
+    const title = String(t.title ?? "").trim();
+    const notes = String(t.notes ?? t.description ?? "").trim();
+    const project = String(t.project ?? t.category ?? "").trim(); // kept for backward compatibility; not shown in UI
+    const priorityRaw = String(t.priority ?? "medium").toLowerCase();
+    const priority =
+      priorityRaw === "high" || priorityRaw === "low" || priorityRaw === "medium" ? priorityRaw : "medium";
+    const dueDate = String(t.dueDate ?? "").trim(); // YYYY-MM-DD
+    const dueTime = String(t.dueTime ?? "").trim(); // HH:MM
+    const done = Boolean(t.done ?? t.completed ?? false);
+    const createdAt = typeof t.createdAt === "string" ? t.createdAt : nowIso();
+    const updatedAt = typeof t.updatedAt === "string" ? t.updatedAt : createdAt;
+
+    return { id, title, notes, project, priority, dueDate, dueTime, done, createdAt, updatedAt };
+  }
+
+  function migrateFromLegacyIfNeeded() {
+    // v2 takes precedence
+    const v2 = safeJsonParse(localStorage.getItem(STORAGE_KEY) || "");
+    if (Array.isArray(v2)) return v2.map(normalizeTask).filter((t) => t.title.length);
+
+    // legacy key from older version
+    const legacy = safeJsonParse(localStorage.getItem("tasks") || "");
+    if (!Array.isArray(legacy)) return [];
+
+    const migrated = legacy
+      .map((t) => normalizeTask(t))
+      .filter((t) => t.title.length);
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    return migrated;
+  }
+
+  function load() {
+    state.tasks = migrateFromLegacyIfNeeded();
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem(THEME_KEY, theme);
+    els.themeIcon.textContent = theme === "dark" ? "☾" : "☀";
+  }
+
+  function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+    const theme = saved || (prefersDark ? "dark" : "light");
+    setTheme(theme);
+  }
+
+  function addTask(title, details) {
+    const t = title.trim();
+    if (!t) return;
+    const task = /** @type {Task} */ ({
+      id: Date.now(),
+      title: t,
+      notes: "",
+      priority: details?.priority || "medium",
+      dueDate: details?.dueDate || "",
+      dueTime: details?.dueTime || "",
+      done: false,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
     });
+    state.tasks.unshift(task);
+    save();
+    render();
+  }
 
-    // ----------------------------------------------------------------------
-    // --- Task Count Functions ---
-    // ----------------------------------------------------------------------
+  function updateTask(id, patch) {
+    const idx = state.tasks.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    state.tasks[idx] = {
+      ...state.tasks[idx],
+      ...patch,
+      updatedAt: nowIso(),
+    };
+    save();
+    render();
+  }
 
-    const updateTaskCount = () => {
-        const count = tasks.length;
-        const badge = document.getElementById("taskCount");
+  function deleteTask(id) {
+    state.tasks = state.tasks.filter((t) => t.id !== id);
+    save();
+    render();
+  }
 
-        if (badge) {
-            badge.textContent = count;
-            badge.classList.remove("high", "medium", "low");
+  function clearDone() {
+    state.tasks = state.tasks.filter((t) => !t.done);
+    save();
+    render();
+  }
 
-            if (count > 10) {
-                badge.classList.add("high");
-            } else if (count > 5) {
-                badge.classList.add("medium");
-            } else {
-                badge.classList.add("low");
-            }
+  function resetAll() {
+    localStorage.removeItem(STORAGE_KEY);
+    // keep legacy key clean too
+    localStorage.removeItem("tasks");
+    state.tasks = [];
+    save();
+    render();
+  }
 
-            badge.style.animation = "none";
-            badge.offsetHeight; // Trigger reflow
-            badge.style.animation = "badge-pop 0.3s ease";
-            badge.style.display = count === 0 ? "none" : "flex";
-        }
+  function getVisibleTasks() {
+    const q = state.q.trim().toLowerCase();
+    let list = state.tasks.slice();
+
+    if (state.filter === "active") list = list.filter((t) => !t.done);
+    if (state.filter === "done") list = list.filter((t) => t.done);
+    if (state.priority !== "all") list = list.filter((t) => t.priority === state.priority);
+
+    if (q) {
+      list = list.filter((t) => {
+        const hay = `${t.title}\n${t.notes}`.toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    return list;
+  }
+
+  function setCounts() {
+    const total = state.tasks.length;
+    const done = state.tasks.filter((t) => t.done).length;
+    const active = total - done;
+    if (els.counts) els.counts.textContent = `${total} total · ${active} active · ${done} done`;
+    if (els.countAll) els.countAll.textContent = String(total);
+    if (els.countActive) els.countActive.textContent = String(active);
+    if (els.countDone) els.countDone.textContent = String(done);
+    els.clearDoneBtn.disabled = done === 0;
+  }
+
+  function taskItemHtml(task) {
+    const title = escapeHtml(task.title);
+    const notes = task.notes ? escapeHtml(task.notes) : "";
+    const dueIso = task.dueDate ? String(task.dueDate) : "";
+    const dueTime = task.dueTime ? String(task.dueTime) : "";
+    const priority = task.priority || "medium";
+    const priorityLabel = priority === "high" ? "High" : priority === "low" ? "Low" : "Medium";
+    const accent = priority;
+
+    const formatTimeDisplay = (hhmm) => {
+      const m = String(hhmm || "").match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return "";
+      let hh = Number(m[1]);
+      const mm = m[2];
+      const ampm = hh >= 12 ? "PM" : "AM";
+      hh = hh % 12;
+      if (hh === 0) hh = 12;
+      return `${hh}:${mm} ${ampm}`;
     };
 
-    const saveTasksToLocalStorage = () => {
-        localStorage.setItem("tasks", JSON.stringify(tasks));
-    };
+    const dueLabel = (() => {
+      if (!dueIso) return "";
+      const d = new Date(dueIso + "T00:00:00");
+      if (Number.isNaN(d.getTime())) return `Due: ${escapeHtml(dueIso)}`;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const diffDays = Math.round((d - today) / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Due: Today";
+      if (diffDays === 1) return "Due: Tomorrow";
+      if (diffDays === -1) return "Due: Yesterday";
+      const pretty = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return `Due: ${pretty}${dueTime ? ` ${formatTimeDisplay(dueTime)}` : ""}`;
+    })();
 
-    // ----------------------------------------------------------------------
-    // --- View Switching Functions ---
-    // ----------------------------------------------------------------------
+    const dueState = (() => {
+      if (!dueIso || task.done) return "";
+      const d = new Date(`${dueIso}T${dueTime || "00:00"}:00`);
+      if (Number.isNaN(d.getTime())) return "";
+      const now = new Date();
+      const diffHours = (d - now) / (1000 * 60 * 60);
+      if (diffHours < 0) return "overdue";
+      if (diffHours <= 48) return "soon";
+      return "";
+    })();
 
-    const switchView = (viewId) => {
-        tasksView.classList.add("hidden");
-        addTaskView.classList.add("hidden");
-        statisticsView.classList.add("hidden"); // Hide statistics view
-        menuButtons.forEach((button) => button.classList.remove("active"));
+    const iconCheck = `
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
 
-        switch (viewId) {
-            case "tasks":
-                tasksView.classList.remove("hidden");
-                document
-                    .querySelector('.menu-btn[data-view="tasks"]')
-                    .classList.add("active");
-                currentView = "tasks";
-                break;
-            case "add":
-                addTaskView.classList.remove("hidden");
-                document
-                    .querySelector('.menu-btn[data-view="add"]')
-                    .classList.add("active");
-                currentView = "add";
-                break;
-            case "statistics":
-                statisticsView.classList.remove("hidden"); // Show statistics view
-                document
-                    .querySelector('.menu-btn[data-view="statistics"]')
-                    .classList.add("active");
-                currentView = "statistics";
-                updateStatistics(); // Render statistics when view is switched
-                break;
-            default:
-                console.warn(`Unknown view ID: ${viewId}`);
-        }
+    const iconCircle = `
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      </svg>
+    `;
 
-        renderTasks(); // Re-render tasks after switching view
-    };
+    const iconPencil = `
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
 
-    menuButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-            menuButtons.forEach((button) => button.classList.remove("active"));
-            button.classList.add("active");
-            const viewId = button.dataset.view;
-            switchView(viewId);
+    const iconTrash = `
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M8 6V4h8v2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6.5 6l1 15h9l1-15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    return `
+      <li class="task" data-id="${task.id}" data-due="${dueState}">
+        <div class="task-head">
+          <div class="task-title ${task.done ? "is-done" : ""}">${title}</div>
+          <div class="task-actions">
+            <button class="icon-action toggle ${task.done ? "is-on" : ""}" type="button" data-action="toggle"
+              aria-label="${task.done ? "Mark as not done" : "Mark as done"}" aria-pressed="${task.done ? "true" : "false"}">
+              ${task.done ? iconCheck : iconCircle}
+            </button>
+            <button class="icon-action" type="button" data-action="edit" aria-label="Edit task">
+              ${iconPencil}
+            </button>
+            <button class="icon-action danger" type="button" data-action="delete" aria-label="Delete task">
+              ${iconTrash}
+            </button>
+          </div>
+        </div>
+
+        <div class="task-meta">
+          <span class="badge prio ${priority}">${priorityLabel}</span>
+          ${dueLabel ? `<span class="badge due ${dueState}">${escapeHtml(dueLabel)}</span>` : ""}
+        </div>
+
+        ${notes ? `<div class="task-notes">${notes}</div>` : ""}
+      </li>
+    `;
+  }
+
+  function render() {
+    const visible = getVisibleTasks();
+    els.taskList.innerHTML = visible.map(taskItemHtml).join("");
+
+    els.emptyState.classList.toggle("is-hidden", visible.length !== 0);
+    setCounts();
+  }
+
+  function setPriorityUI(value, scope) {
+    const label = PRIORITY_LABEL[value] || PRIORITY_LABEL.medium;
+    if (scope === "edit") {
+      if (els.editPriorityValue) els.editPriorityValue.textContent = label;
+      if (els.editPriority) els.editPriority.value = value;
+      for (const item of $$(".drop-item", els.editPriorityMenu)) {
+        const isActive = item.dataset.value === value;
+        item.classList.toggle("is-active", isActive);
+        item.setAttribute("aria-selected", isActive ? "true" : "false");
+      }
+      return;
+    }
+
+    if (els.priorityValue) els.priorityValue.textContent = label;
+    if (els.priorityInput) els.priorityInput.value = value;
+    for (const item of $$(".drop-item", els.priorityMenu)) {
+      const isActive = item.dataset.value === value;
+      item.classList.toggle("is-active", isActive);
+      item.setAttribute("aria-selected", isActive ? "true" : "false");
+    }
+  }
+
+  function openDropdown(dropdownEl, btnEl, menuEl) {
+    if (!dropdownEl || !btnEl) return;
+    dropdownEl.classList.add("is-open");
+    btnEl.setAttribute("aria-expanded", "true");
+    menuEl?.focus?.();
+  }
+
+  function closeDropdown(dropdownEl, btnEl) {
+    if (!dropdownEl || !btnEl) return;
+    dropdownEl.classList.remove("is-open");
+    btnEl.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleDropdown(dropdownEl, btnEl, menuEl) {
+    if (!dropdownEl || !btnEl) return;
+    const willOpen = !dropdownEl.classList.contains("is-open");
+    if (willOpen) closeAllDropdowns();
+    const isOpen = dropdownEl.classList.toggle("is-open");
+    btnEl.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    if (isOpen) {
+      setTimeout(() => positionFloatingMenu(btnEl, menuEl), 0);
+      menuEl?.focus?.();
+    }
+  }
+
+  function closeAllDropdowns() {
+    closeDropdown(els.priorityDropdown, els.priorityBtn);
+    closeDropdown(els.editPriorityDropdown, els.editPriorityBtn);
+    closeDropdown(els.dueDropdown, els.dueBtn);
+    closeDropdown(els.editDueDropdown, els.editDueBtn);
+    closeDropdown(els.timeDropdown, els.timeBtn);
+    closeDropdown(els.editTimeDropdown, els.editTimeBtn);
+    closeDropdown(els.priorityFilterDropdown, els.priorityFilterBtn);
+  }
+
+  function fmtMonthLabel(year, monthIndex) {
+    const d = new Date(year, monthIndex, 1);
+    return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+  }
+
+  function fmtDueLabel(iso) {
+    if (!iso) return "Due: None";
+    return `Due: ${iso}`;
+  }
+
+  function fmtTimeLabel(hhmm) {
+    if (!hhmm) return "Time: None";
+    const m = String(hhmm).match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return `Time: ${hhmm}`;
+    let hh = Number(m[1]);
+    const mm = m[2];
+    const ampm = hh >= 12 ? "PM" : "AM";
+    hh = hh % 12;
+    if (hh === 0) hh = 12;
+    return `Time: ${hh}:${mm} ${ampm}`;
+  }
+
+  function setAmPmButtons(isEdit, hh24) {
+    const amBtn = isEdit ? els.editTimeAM : els.timeAM;
+    const pmBtn = isEdit ? els.editTimePM : els.timePM;
+    if (!amBtn || !pmBtn) return;
+    const m = String(hh24 || "").match(/^(\d{1,2}):(\d{2})$/);
+    const isPm = m ? Number(m[1]) >= 12 : false;
+    amBtn.classList.toggle("is-on", !isPm);
+    pmBtn.classList.toggle("is-on", isPm);
+    amBtn.setAttribute("aria-pressed", (!isPm).toString());
+    pmBtn.setAttribute("aria-pressed", isPm.toString());
+  }
+
+  function positionFloatingMenu(btnEl, menuEl) {
+    if (!btnEl || !menuEl) return;
+    // menu is displayed when dropdown is open; position it within viewport
+    menuEl.style.position = "fixed";
+    menuEl.style.right = "auto";
+    menuEl.style.left = "0px";
+    menuEl.style.top = "0px";
+    menuEl.style.maxWidth = `min(360px, calc(100vw - 24px))`;
+    menuEl.style.maxHeight = `calc(100vh - 24px)`;
+    menuEl.style.overflow = "auto";
+
+    const rect = btnEl.getBoundingClientRect();
+    const menuRect = menuEl.getBoundingClientRect();
+    const pad = 12;
+
+    // horizontal: align right edge to button right edge
+    let left = rect.right - menuRect.width;
+    left = Math.max(pad, Math.min(left, window.innerWidth - menuRect.width - pad));
+
+    // vertical: prefer below, otherwise above
+    let top = rect.bottom + 10;
+    if (top + menuRect.height > window.innerHeight - pad) {
+      top = rect.top - 10 - menuRect.height;
+    }
+    top = Math.max(pad, Math.min(top, window.innerHeight - menuRect.height - pad));
+
+    menuEl.style.left = `${left}px`;
+    menuEl.style.top = `${top}px`;
+  }
+
+  function buildCalendarGrid({ year, monthIndex, selectedIso, gridEl, onPick }) {
+    // Monday-first calendar
+    const first = new Date(year, monthIndex, 1);
+    const last = new Date(year, monthIndex + 1, 0);
+    const daysInMonth = last.getDate();
+    const firstDay = (first.getDay() + 6) % 7; // convert Sun(0) -> 6
+
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, monthIndex, d));
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const selected = selectedIso ? new Date(selectedIso + "T00:00:00") : null;
+    const today = new Date();
+    const todayIso = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      .toISOString()
+      .slice(0, 10);
+
+    gridEl.innerHTML = cells
+      .map((cell) => {
+        if (!cell) return `<span class="day is-empty" aria-hidden="true"></span>`;
+        const iso = cell.toISOString().slice(0, 10);
+        const isToday = iso === todayIso;
+        const isSelected =
+          selected &&
+          cell.getFullYear() === selected.getFullYear() &&
+          cell.getMonth() === selected.getMonth() &&
+          cell.getDate() === selected.getDate();
+        const cls = ["day"];
+        if (isToday) cls.push("is-today");
+        if (isSelected) cls.push("is-selected");
+        return `<button type="button" class="${cls.join(" ")}" data-iso="${iso}">${cell.getDate()}</button>`;
+      })
+      .join("");
+
+    gridEl.querySelectorAll("button.day").forEach((b) => {
+      b.addEventListener("click", () => onPick(b.dataset.iso));
+    });
+  }
+
+  function initDatePicker(scope) {
+    const isEdit = scope === "edit";
+    const dropdownEl = isEdit ? els.editDueDropdown : els.dueDropdown;
+    const btnEl = isEdit ? els.editDueBtn : els.dueBtn;
+    const menuEl = isEdit ? els.editDueMenu : els.dueMenu;
+    const valueEl = isEdit ? els.editDueValue : els.dueValue;
+    const inputEl = isEdit ? els.editDue : els.dueInput;
+    const gridEl = isEdit ? els.editDueGrid : els.dueGrid;
+    const monthEl = isEdit ? els.editDueMonth : els.dueMonth;
+    const prevEl = isEdit ? els.editDuePrev : els.duePrev;
+    const nextEl = isEdit ? els.editDueNext : els.dueNext;
+    const todayEl = isEdit ? els.editDueToday : els.dueToday;
+    const clearEl = isEdit ? els.editDueClear : els.dueClear;
+
+    if (!dropdownEl || !btnEl || !menuEl || !valueEl || !inputEl || !gridEl || !monthEl) return;
+
+    let view = (() => {
+      const base = inputEl.value ? new Date(inputEl.value + "T00:00:00") : new Date();
+      return { y: base.getFullYear(), m: base.getMonth() };
+    })();
+
+    const sync = () => {
+      valueEl.textContent = fmtDueLabel(inputEl.value);
+      monthEl.textContent = fmtMonthLabel(view.y, view.m);
+      buildCalendarGrid({
+        year: view.y,
+        monthIndex: view.m,
+        selectedIso: inputEl.value,
+        gridEl,
+        onPick: (iso) => {
+          inputEl.value = iso;
+          valueEl.textContent = fmtDueLabel(iso);
+          closeDropdown(dropdownEl, btnEl);
+        },
         });
+    };
+
+    btnEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      // reset view to selected month each open
+      view = (() => {
+        const base = inputEl.value ? new Date(inputEl.value + "T00:00:00") : new Date();
+        return { y: base.getFullYear(), m: base.getMonth() };
+      })();
+      toggleDropdown(dropdownEl, btnEl, menuEl);
+      if (dropdownEl.classList.contains("is-open")) sync();
     });
 
-    // ----------------------------------------------------------------------
-    // --- Task Rendering Functions ---
-    // ----------------------------------------------------------------------
+    prevEl?.addEventListener("click", () => {
+      view.m -= 1;
+      if (view.m < 0) {
+        view.m = 11;
+        view.y -= 1;
+      }
+      sync();
+    });
 
-    const renderTasks = () => {
-        tasksList.innerHTML = "";
-        let filteredTasks = [...tasks];
+    nextEl?.addEventListener("click", () => {
+      view.m += 1;
+      if (view.m > 11) {
+        view.m = 0;
+        view.y += 1;
+      }
+      sync();
+    });
 
-        // Apply Filters
-        const searchTerm = searchInput.value.toLowerCase();
-        const priorityValue = priorityFilter.value;
-        const categoryValue = categoryFilter.value;
+    todayEl?.addEventListener("click", () => {
+      const t = new Date();
+      const iso = new Date(t.getFullYear(), t.getMonth(), t.getDate()).toISOString().slice(0, 10);
+      inputEl.value = iso;
+      valueEl.textContent = fmtDueLabel(iso);
+      closeDropdown(dropdownEl, btnEl);
+    });
 
-        if (searchTerm) {
-            filteredTasks = filteredTasks.filter((task) =>
-                task.title.toLowerCase().includes(searchTerm)
-            );
-        }
-        if (priorityValue !== "all") {
-            filteredTasks = filteredTasks.filter(
-                (task) => task.priority === priorityValue
-            );
-        }
-        if (categoryValue !== "all") {
-            filteredTasks = filteredTasks.filter(
-                (task) => task.category === categoryValue
-            );
-        }
+    clearEl?.addEventListener("click", () => {
+      inputEl.value = "";
+      valueEl.textContent = fmtDueLabel("");
+      closeDropdown(dropdownEl, btnEl);
+    });
 
-        // Handle Empty State
-        if (filteredTasks.length === 0) {
-            tasksList.innerHTML =
-                '<div class="empty-state">' +
-                '<div class="empty-state-container">' +
-                '<div class="empty-state-icon">' +
-                '<svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                '<path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                '<path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" stroke-width="2"/>' +
-                '<path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                '<path d="M9 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                "</svg>" +
-                "</div>" +
-                '<h3 class="empty-state-title">No Tasks Found</h3>' +
-                '<p class="empty-state-description">There are no tasks matching your criteria. Try adjusting your filters or create a new task.</p>' +
-                '<button class="empty-state-button" id="addNewTaskBtn">' +
-                '<i class="fas fa-plus"></i>' +
-                "Add New Task" +
-                "</button>" +
-                "</div>" +
-                "</div>";
+    // initial
+    valueEl.textContent = fmtDueLabel(inputEl.value);
+  }
 
-            // Add event listener after creating the button
-            const addNewTaskBtn = document.getElementById("addNewTaskBtn");
-            if (addNewTaskBtn) {
-                addNewTaskBtn.addEventListener("click", () => {
-                    switchView("add");
-                });
-            }
+  function initTimePicker(scope) {
+    const isEdit = scope === "edit";
+    const dropdownEl = isEdit ? els.editTimeDropdown : els.timeDropdown;
+    const btnEl = isEdit ? els.editTimeBtn : els.timeBtn;
+    const menuEl = isEdit ? els.editTimeMenu : els.timeMenu;
+    const valueEl = isEdit ? els.editTimeValue : els.timeValue;
+    const inputEl = isEdit ? els.editTime : els.timeInput;
+    const hourEl = isEdit ? els.editTimeHour : els.timeHour;
+    const minuteEl = isEdit ? els.editTimeMinute : els.timeMinute;
+    const clearEl = isEdit ? els.editTimeClear : els.timeClear;
+    const amBtn = isEdit ? els.editTimeAM : els.timeAM;
+    const pmBtn = isEdit ? els.editTimePM : els.timePM;
+
+    if (!dropdownEl || !btnEl || !menuEl || !valueEl || !inputEl || !hourEl || !minuteEl) return;
+
+    const parseStored = () => {
+      const m = String(inputEl.value || "").match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return null;
+      return { hh24: Number(m[1]), mm: Number(m[2]) };
+    };
+
+    const setFromParts = () => {
+      const hhRaw = String(hourEl.value || "").trim();
+      const mmRaw = String(minuteEl.value || "").trim();
+      if (!hhRaw && !mmRaw) {
+        inputEl.value = "";
+        valueEl.textContent = fmtTimeLabel("");
+        setAmPmButtons(isEdit, "");
             return;
         }
 
-        filteredTasks.forEach((task, index) => {
-            const taskElement = createTaskElement(task);
-            tasksList.appendChild(taskElement);
-        });
+      const hh = Number(hhRaw);
+      const mm = Number(mmRaw);
+      if (!Number.isFinite(hh) || !Number.isFinite(mm)) return;
+      if (hh < 1 || hh > 12) return;
+      if (mm < 0 || mm > 59) return;
+
+      const isPm = pmBtn?.classList.contains("is-on");
+      let hh24 = hh % 12;
+      if (isPm) hh24 += 12;
+      inputEl.value = `${String(hh24).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+      valueEl.textContent = fmtTimeLabel(inputEl.value);
+      setAmPmButtons(isEdit, inputEl.value);
     };
 
-    const createTaskElement = (task) => {
-        const taskElement = document.createElement("div");
-        taskElement.classList.add("task-card");
-
-        const currentStatus = updateTaskStatus(task);
-        taskElement.dataset.status = currentStatus;
-
-        // Task Header
-        const taskHeader = document.createElement("div");
-        taskHeader.classList.add("task-header");
-
-        // Title and Category
-        const titleContainer = document.createElement("div");
-        titleContainer.classList.add("title-container");
-
-        const titleElement = document.createElement("h3");
-        titleElement.classList.add("task-title");
-        titleElement.textContent = task.title;
-
-        const categoryElement = document.createElement("span");
-        categoryElement.classList.add("category-tag", task.category.toLowerCase());
-        categoryElement.textContent = task.category;
-
-        titleContainer.appendChild(titleElement);
-        titleContainer.appendChild(categoryElement);
-
-        // Task Status with new status indicators
-        const statusElement = document.createElement("div");
-        statusElement.classList.add("task-status");
-        statusElement.innerHTML = getStatusHTML(currentStatus);
-
-        // Status Change Button
-        const statusChangeBtn = document.createElement("button");
-        statusChangeBtn.classList.add("status-change-btn");
-        statusChangeBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
-        statusChangeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            showStatusChangeMenu(task, statusChangeBtn);
-        });
-
-        statusElement.appendChild(statusChangeBtn);
-        taskHeader.appendChild(titleContainer);
-        taskHeader.appendChild(statusElement);
-        taskElement.appendChild(taskHeader);
-
-        // Task Content
-        if (task.description) {
-            const descriptionElement = document.createElement("p");
-            descriptionElement.classList.add("task-description");
-            descriptionElement.textContent = task.description;
-            taskElement.appendChild(descriptionElement);
-        }
-
-        // Task Meta Information
-        const taskMeta = document.createElement("div");
-        taskMeta.classList.add("task-meta");
-
-        if (task.dueDate || task.dueTime) {
-            const timeContainer = document.createElement("div");
-            timeContainer.classList.add("time-info");
-
-            if (task.dueDate) {
-                const dueDateElement = document.createElement("span");
-                dueDateElement.classList.add("due-date");
-                dueDateElement.innerHTML = `<i class="far fa-calendar"></i> ${new Date(
-                    task.dueDate
-                ).toLocaleDateString()}`;
-                timeContainer.appendChild(dueDateElement);
-            }
-
-            if (task.dueTime) {
-                const dueTimeElement = document.createElement("span");
-                dueTimeElement.classList.add("due-time");
-                dueTimeElement.innerHTML = `<i class="far fa-clock"></i> ${task.dueTime}`;
-                timeContainer.appendChild(dueTimeElement);
-            }
-
-            taskMeta.appendChild(timeContainer);
-        }
-        taskElement.appendChild(taskMeta);
-
-        // Task Actions
-        const taskActions = document.createElement("div");
-        taskActions.classList.add("task-actions");
-
-        const completeBtn = createButton(
-            "complete-btn",
-            task.completed ? "↩️ Undo" : "✓ Complete",
-            () => toggleTaskStatus(task.id)
-        );
-        const editBtn = createButton("edit-btn", "✏️ Edit", () =>
-            editTask(task.id)
-        );
-        const deleteBtn = createButton("delete-btn", "🗑️ Delete", () =>
-            deleteTask(task.id)
-        );
-
-        taskActions.appendChild(completeBtn);
-        taskActions.appendChild(editBtn);
-        taskActions.appendChild(deleteBtn);
-        taskElement.appendChild(taskActions);
-
-        return taskElement;
+    const syncUIFromStored = () => {
+      const stored = parseStored();
+      if (!stored) {
+        hourEl.value = "";
+        minuteEl.value = "";
+        valueEl.textContent = fmtTimeLabel("");
+        setAmPmButtons(isEdit, "");
+        return;
+      }
+      const isPm = stored.hh24 >= 12;
+      let hh12 = stored.hh24 % 12;
+      if (hh12 === 0) hh12 = 12;
+      hourEl.value = String(hh12);
+      minuteEl.value = String(stored.mm).padStart(2, "0");
+      valueEl.textContent = fmtTimeLabel(inputEl.value);
+      setAmPmButtons(isEdit, inputEl.value);
+      // ensure button state matches stored
+      if (amBtn && pmBtn) {
+        amBtn.classList.toggle("is-on", !isPm);
+        pmBtn.classList.toggle("is-on", isPm);
+        amBtn.setAttribute("aria-pressed", (!isPm).toString());
+        pmBtn.setAttribute("aria-pressed", isPm.toString());
+      }
     };
 
-    const createButton = (className, text, onClick) => {
-        const button = document.createElement("button");
-        button.classList.add("task-btn", className);
-        button.textContent = text;
-        button.addEventListener("click", onClick);
-        return button;
-    };
-
-    const getStatusHTML = (status) => {
-        switch (status) {
-            case TaskStatus.COMPLETED:
-                return '<span class="status completed"><i class="fas fa-check-circle"></i> Completed</span>';
-            case TaskStatus.IN_PROGRESS:
-                return '<span class="status in-progress"><i class="fas fa-spinner fa-spin"></i> In Progress</span>';
-            case TaskStatus.OVERDUE:
-                return '<span class="status overdue"><i class="fas fa-exclamation-circle"></i> Overdue</span>';
-            default:
-                return '<span class="status pending"><i class="fas fa-clock"></i> Pending</span>';
-        }
-    };
-
-    // ----------------------------------------------------------------------
-    // --- Task Management Functions ---
-    // ----------------------------------------------------------------------
-
-    const addTask = (
-        title,
-        description,
-        category,
-        priority,
-        dueDate,
-        dueTime
-    ) => {
-        const newTask = {
-            id: Date.now(),
-            title,
-            description,
-            category,
-            priority,
-            dueDate,
-            dueTime,
-            completed: false,
-        };
-        tasks.push(newTask);
-
-        saveTasksToLocalStorage();
-        updateTaskCount();
-        onTasksChanged();
-        if (currentView === "tasks") {
-            renderTasks();
-        }
-    };
-
-    const toggleTaskStatus = (taskId) => {
-        const taskIndex = tasks.findIndex((task) => task.id === taskId);
-        if (taskIndex !== -1) {
-            tasks[taskIndex].completed = !tasks[taskIndex].completed;
-            saveTasksToLocalStorage();
-            onTasksChanged();
-            renderTasks();
-        }
-    };
-
-    const editTask = (taskId) => {
-        const taskIndex = tasks.findIndex((task) => task.id === taskId);
-        if (taskIndex !== -1) {
-            const task = tasks[taskIndex];
-            switchView("add");
-
-            taskTitleInput.value = task.title;
-            taskDescriptionInput.value = task.description;
-            taskCategorySelect.value = task.category.toLowerCase();
-            taskPrioritySelect.value = task.priority;
-            taskDueDateInput.value = task.dueDate;
-            taskDueTimeInput.value = task.dueTime;
-
-            tasks.splice(taskIndex, 1);
-
-            saveTasksToLocalStorage();
-            updateTaskCount();
-            onTasksChanged();
-            renderTasks();
-        }
-    };
-
-    const deleteTask = (taskId) => {
-        const taskIndex = tasks.findIndex((task) => task.id === taskId);
-        if (taskIndex !== -1) {
-            tasks.splice(taskIndex, 1);
-
-            saveTasksToLocalStorage();
-            updateTaskCount();
-            onTasksChanged();
-            renderTasks();
-        }
-    };
-
-    const updateTaskStatus = (task) => {
-        if (task.completed) {
-            return TaskStatus.COMPLETED;
-        }
-
-        const now = new Date();
-        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-        const dueTime = task.dueTime
-            ? new Date(`${task.dueDate}T${task.dueTime}`)
-            : null;
-
-        if (dueDate && dueDate < now && !task.completed && dueTime < now) {
-            return TaskStatus.OVERDUE;
-        }
-
-        if (task.startedAt && !task.completed) {
-            return TaskStatus.IN_PROGRESS;
-        }
-        onTasksChanged();
-        return TaskStatus.PENDING;
-    };
-
-    const showStatusChangeMenu = (task, buttonElement) => {
-        const menu = document.createElement("div");
-        menu.className = "status-menu";
-        menu.innerHTML = `
-            <div class="status-menu-item" data-status="${TaskStatus.PENDING}">
-                <i class="fas fa-clock"></i> Set as Pending
-            </div>
-            <div class="status-menu-item" data-status="${TaskStatus.IN_PROGRESS}">
-                <i class="fas fa-spinner"></i> Start Task
-            </div>
-            <div class="status-menu-item" data-status="${TaskStatus.COMPLETED}">
-                <i class="fas fa-check-circle"></i> Mark Complete
-            </div> `;
-
-        const rect = buttonElement.getBoundingClientRect();
-        menu.style.position = "absolute";
-        menu.style.top = `${rect.bottom + window.scrollY}px`;
-        menu.style.left = `${rect.left + window.scrollX}px`;
-
-        menu.addEventListener("click", (e) => {
-            const item = e.target.closest(".status-menu-item");
-            if (item) {
-                const newStatus = item.dataset.status;
-                changeTaskStatus(task, newStatus);
-                menu.remove();
-            }
-        });
-
-        document.addEventListener("click", function closeMenu(e) {
-            if (!menu.contains(e.target) && e.target !== buttonElement) {
-                menu.remove();
-                document.removeEventListener("click", closeMenu);
-            }
-        });
-
-        document.body.appendChild(menu);
-    };
-
-    const changeTaskStatus = (task, newStatus) => {
-        task.status = newStatus;
-
-        if (newStatus === TaskStatus.IN_PROGRESS) {
-            task.startedAt = new Date().toISOString();
-        } else if (newStatus === TaskStatus.COMPLETED) {
-            task.completed = true;
-            task.completedAt = new Date().toISOString();
-        }
-
-        onTasksChanged();
-        saveTasksToLocalStorage();
-        renderTasks();
-    };
-
-    // ----------------------------------------------------------------------
-    // --- Form Handling ---
-    // ----------------------------------------------------------------------
-
-    taskForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-
-        const title = taskTitleInput.value.trim();
-        const description = taskDescriptionInput.value.trim();
-        const category = taskCategorySelect.value;
-        const priority = taskPrioritySelect.value;
-        const dueDate = taskDueDateInput.value;
-        const dueTime = taskDueTimeInput.value;
-
-        if (!title || !category || !priority || !dueDate || !dueTime) {
-            alert("Please fill in all required fields.");
-            return;
-        }
-
-        addTask(title, description, category, priority, dueDate, dueTime);
-
-        // Reset the form
-        taskForm.reset();
-
-        switchView("tasks");
+    btnEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleDropdown(dropdownEl, btnEl, menuEl);
+      if (dropdownEl.classList.contains("is-open")) {
+        syncUIFromStored();
+        setTimeout(() => hourEl.focus(), 0);
+      }
     });
 
-    // ----------------------------------------------------------------------
-    // --- Category Handling ---
-    // ----------------------------------------------------------------------
-
-    const populateCategoryFilter = () => {
-        categoryFilter.innerHTML = '<option value="all">All Categories</option>';
-        categories.forEach((category) => {
-            const option = document.createElement("option");
-            option.value = category.toLowerCase();
-            option.textContent = category;
-            categoryFilter.appendChild(option);
-        });
+    const applyMeridiem = (wantPm) => {
+      if (!amBtn || !pmBtn) return;
+      amBtn.classList.toggle("is-on", !wantPm);
+      pmBtn.classList.toggle("is-on", wantPm);
+      amBtn.setAttribute("aria-pressed", (!wantPm).toString());
+      pmBtn.setAttribute("aria-pressed", wantPm.toString());
+      setFromParts();
     };
 
-    const populateCategorySelect = () => {
-        taskCategorySelect.innerHTML = '<option value="">Select Category</option>';
-        categories.forEach((category) => {
-            const option = document.createElement("option");
-            option.value = category.toLowerCase();
-            option.textContent = category;
-            taskCategorySelect.appendChild(option);
-        });
-    };
+    amBtn?.addEventListener("click", () => applyMeridiem(false));
+    pmBtn?.addEventListener("click", () => applyMeridiem(true));
 
-    // ----------------------------------------------------------------------
-    // --- Event Listeners for Filtering ---
-    // ----------------------------------------------------------------------
+    const onPartsInput = () => setFromParts();
+    hourEl.addEventListener("input", onPartsInput);
+    minuteEl.addEventListener("input", onPartsInput);
 
-    searchInput.addEventListener("input", renderTasks);
-    priorityFilter.addEventListener("change", renderTasks);
-    categoryFilter.addEventListener("change", renderTasks);
-
-    // ----------------------------------------------------------------------
-    // --- Statistics Rendering ---
-    // ----------------------------------------------------------------------
-
-    // Statistics Update Functions
-    const updateStatistics = () => {
-        const stats = calculateStatistics();
-        updateStatCards(stats);
-        updatePriorityChart(stats);
-        updateCategoryDistribution(stats);
-    };
-
-    const calculateStatistics = () => {
-        const now = new Date();
-        const stats = {
-            total: tasks.length,
-            completed: 0,
-            pending: 0,
-            overdue: 0,
-            dueSoon: 0,
-            critical: 0,
-            priority: { high: 0, medium: 0, low: 0 },
-            categories: {},
-            activeProjects: new Set(tasks.map((task) => task.category)).size,
-            completionRate: 0,
-            timeline: {},
-        };
-
-        // Calculate all statistics
-        tasks.forEach((task) => {
-            // Status counts
-            if (task.status === "completed") {
-                stats.completed++;
-                if (task.completedAt) {
-                    const completionDate = new Date(task.completedAt)
-                        .toISOString()
-                        .split("T")[0];
-                    stats.timeline[completionDate] =
-                        (stats.timeline[completionDate] || 0) + 1;
-                }
-            } else {
-                stats.pending++;
-
-                // Check due dates
-                const dueDate = new Date(task.dueDate);
-                if (task.dueTime) {
-                    const [hours, minutes] = task.dueTime.split(":");
-                    dueDate.setHours(parseInt(hours), parseInt(minutes));
-                }
-
-                const diffHours = (dueDate - now) / (1000 * 60 * 60);
-
-                if (dueDate < now) {
-                    stats.overdue++;
-                    if (task.priority === "high") {
-                        stats.critical++;
-                    }
-                } else if (diffHours <= 24) {
-                    stats.dueSoon++;
-                }
-            }
-
-            // Priority counts
-            stats.priority[task.priority]++;
-
-            // Category counts
-            stats.categories[task.category] =
-                (stats.categories[task.category] || 0) + 1;
-        });
-
-        // Calculate completion rate
-        stats.completionRate =
-            stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-
-        // Update DOM elements with statistics
-        updateStatCards(stats);
-
-        return stats; // Return stats object in case it's needed elsewhere
-    };
-
-    const updateStatCards = (stats) => {
-        // Update main stat cards
-        document.getElementById("total-tasks-count").textContent = stats.total;
-        document.getElementById("completed-tasks-count").textContent =
-            stats.completed;
-        document.getElementById("pending-tasks-count").textContent =
-            stats.pending;
-        document.getElementById("overdue-tasks-count").textContent =
-            stats.overdue;
-
-        // Update additional stats
-        document.getElementById("active-projects").textContent =
-            stats.activeProjects;
-        document.getElementById("due-soon-count").textContent = stats.dueSoon;
-        document.getElementById("critical-count").textContent = stats.critical;
-
-        // Update completion rate
-        const completionProgress = document.getElementById("completion-progress");
-        if (completionProgress) {
-            completionProgress.style.width = `${stats.completionRate}%`;
-        }
-        const completionRate = document.getElementById("completion-rate");
-        if (completionRate) {
-            completionRate.textContent = `${stats.completionRate}%`;
-        }
-    };
-
-    const updatePriorityChart = (stats) => {
-        const maxPriority = Math.max(...Object.values(stats.priority));
-
-        Object.entries(stats.priority).forEach(([priority, count]) => {
-            const percentage = maxPriority > 0 ? (count / maxPriority) * 100 : 0;
-            const bar = document.getElementById(`${priority}-priority-bar`);
-            const countElement = document.getElementById(
-                `${priority}-priority-count`
-            );
-
-            bar.style.width = `${percentage}%`;
-            countElement.textContent = count;
-        });
-    };
-
-    const updateCategoryDistribution = (stats) => {
-        const categoryStats = document.getElementById("category-stats");
-        categoryStats.innerHTML = "";
-
-        Object.entries(stats.categories).forEach(([category, count]) => {
-            const pill = document.createElement("div");
-            pill.classList.add("category-pill", category);
-            pill.innerHTML = `
-            <span>${category}</span>
-            <span class="count">${count}</span>
-        `;
-            categoryStats.appendChild(pill);
-        });
-    };
-
-    // Event Listeners for Date Filter
-    document.querySelectorAll(".date-filter-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            document
-                .querySelector(".date-filter-btn.active")
-                .classList.remove("active");
-            btn.classList.add("active");
-            updateStatistics(); // Update with new date range
-        });
+    clearEl?.addEventListener("click", () => {
+      inputEl.value = "";
+      hourEl.value = "";
+      minuteEl.value = "";
+      valueEl.textContent = fmtTimeLabel("");
+      closeDropdown(dropdownEl, btnEl);
+      btnEl.focus();
     });
 
-    // Initialize Charts using ApexCharts
-    const initializeCharts = () => {
-        // Category Distribution Chart
-        const categoryOptions = {
-            chart: {
-                type: "donut",
-                height: 300,
-                fontFamily: "inherit",
-                background: "transparent",
-                animations: {
-                    enabled: true,
-                    easing: "easeinout",
-                    speed: 800,
-                    animateGradually: {
-                        enabled: true,
-                        delay: 150,
-                    },
-                },
-            },
-            colors: ["#e11d48", "#0891b2", "#ca8a04", "#7c3aed"],
-            legend: {
-                position: "bottom",
-                horizontalAlign: "center",
-                fontSize: "14px",
-                markers: {
-                    radius: 12,
-                },
-            },
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: "70%",
-                    },
-                },
-            },
-            dataLabels: {
-                enabled: true,
-                formatter: function (val) {
-                    return Math.round(val) + "%";
-                },
-            },
-            series: [],
-            labels: [],
-        };
+    // initial
+    valueEl.textContent = fmtTimeLabel(inputEl.value);
+    setAmPmButtons(isEdit, inputEl.value);
+  }
 
-        const categoryChart = new ApexCharts(
-            document.querySelector("#categoryChart"),
-            categoryOptions
-        );
-        categoryChart.render();
+  function openConfirm(payload) {
+    state.confirm = payload;
+    if (els.confirmTitle) {
+      els.confirmTitle.textContent =
+        payload.type === "deleteTask" ? "Delete task" : payload.type === "clearDone" ? "Clear done" : "Reset";
+    }
+    if (els.confirmOk) {
+      els.confirmOk.textContent =
+        payload.type === "deleteTask" ? "Delete" : payload.type === "clearDone" ? "Clear" : "Reset";
+    }
+    if (els.confirmSub) els.confirmSub.textContent = "This action can’t be undone.";
+    if (els.confirmText) {
+      if (payload.type === "deleteTask") els.confirmText.textContent = payload.message;
+      if (payload.type === "clearDone") els.confirmText.textContent = "Clear all completed tasks?";
+      if (payload.type === "resetAll") els.confirmText.textContent = "Reset TaskFlow on this device?";
+    }
+    if (typeof els.confirmDialog?.showModal === "function") els.confirmDialog.showModal();
+  }
 
-        // Timeline Chart
-        const timelineOptions = {
-            chart: {
-                type: "area",
-                height: 300,
-                fontFamily: "inherit",
-                background: "transparent",
-                toolbar: {
-                    show: false,
-                },
-                animations: {
-                    enabled: true,
-                    easing: "easeinout",
-                    speed: 800,
-                },
-            },
-            colors: ["#2563eb"],
-            stroke: {
-                curve: "smooth",
-                width: 3,
-            },
-            fill: {
-                type: "gradient",
-                gradient: {
-                    shadeIntensity: 1,
-                    opacityFrom: 0.7,
-                    opacityTo: 0.3,
-                },
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            xaxis: {
-                type: "datetime",
-                labels: {
-                    style: {
-                        colors: "#64748b",
-                    },
-                    format: "dd MMM",
-                },
-            },
-            yaxis: {
-                labels: {
-                    style: {
-                        colors: "#64748b",
-                    },
-                },
-            },
-            grid: {
-                borderColor: "#e2e8f0",
-                strokeDashArray: 4,
-            },
-            series: [
-                {
-                    name: "Completed Tasks",
-                    data: [],
-                },
-            ],
-        };
+  function closeConfirm() {
+    state.confirm = null;
+    if (els.confirmDialog?.open) els.confirmDialog.close();
+  }
 
-        const timelineChart = new ApexCharts(
-            document.querySelector("#timelineChart"),
-            timelineOptions
-        );
-        timelineChart.render();
+  function setFilter(next) {
+    state.filter = next;
+    for (const btn of els.filterBtns) {
+      const isActive = btn.dataset.filter === next;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    }
+    render();
+  }
 
-        return { categoryChart, timelineChart };
-    };
+  function openEdit(id) {
+    const task = state.tasks.find((t) => t.id === id);
+    if (!task) return;
+    state.editingId = id;
+    els.editTitle.value = task.title;
+    els.editNotes.value = task.notes || "";
+    if (els.editPriority) els.editPriority.value = task.priority || "medium";
+    if (els.editDue) els.editDue.value = task.dueDate || "";
+    if (els.editTime) els.editTime.value = task.dueTime || "";
+    if (els.editTimeValue) els.editTimeValue.textContent = fmtTimeLabel(els.editTime.value || "");
+    if (typeof els.editDialog.showModal === "function") els.editDialog.showModal();
+    else alert("Your browser doesn't support the edit dialog. Please update your browser.");
+    els.editTitle.focus();
+    els.editTitle.select();
+  }
 
-    // Calculate Statistics based on actual tasks data
-    const calculateChartData = (timeRange = "week") => {
-        const now = new Date();
-        const stats = {
-            categories: {},
-            timeline: {},
-        };
+  function closeEdit() {
+    state.editingId = null;
+    if (els.editDialog.open) els.editDialog.close();
+  }
 
-        // Initialize categories from tasks
-        tasks.forEach((task) => {
-            if (!stats.categories[task.category]) {
-                stats.categories[task.category] = 0;
-            }
-            stats.categories[task.category]++;
-        });
+  function openConfirmDelete(id) {
+    const task = state.tasks.find((t) => t.id === id);
+    if (!task) return;
+    state.confirmingDeleteId = id;
+    if (els.confirmText) {
+      const title = task.title.length > 80 ? `${task.title.slice(0, 80)}…` : task.title;
+      els.confirmText.textContent = `Delete “${title}”?`;
+    }
+    if (typeof els.confirmDialog?.showModal === "function") els.confirmDialog.showModal();
+  }
 
-        // Calculate date range for timeline
-        let startDate = new Date();
-        switch (timeRange) {
-            case "week":
-                startDate.setDate(now.getDate() - 7);
-                break;
-            case "month":
-                startDate.setMonth(now.getMonth() - 1);
-                break;
-            case "year":
-                startDate.setFullYear(now.getFullYear() - 1);
-                break;
-        }
+  function closeConfirmDelete() {
+    state.confirmingDeleteId = null;
+    if (els.confirmDialog?.open) els.confirmDialog.close();
+  }
 
-        // Initialize timeline dates
-        let currentDate = new Date(startDate);
-        while (currentDate <= now) {
-            const dateStr = currentDate.toISOString().split("T")[0];
-            stats.timeline[dateStr] = 0;
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-        // Fill timeline data from completed tasks
-        tasks.forEach((task) => {
-            if (task.completed) {
-                const completionDate = new Date(task.completedAt || task.dueDate);
-                if (completionDate >= startDate && completionDate <= now) {
-                    const dateStr = completionDate.toISOString().split("T")[0];
-                    if (stats.timeline[dateStr] !== undefined) {
-                        stats.timeline[dateStr]++;
-                    }
-                }
-            }
-        });
+  // Events
+  els.themeToggle.addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme") || "dark";
+    setTheme(cur === "dark" ? "light" : "dark");
+  });
 
-        return stats;
-    };
+  // add form validation
+  const addErrorEl = document.getElementById("addError");
+  const setAddError = (msg) => {
+    if (addErrorEl) addErrorEl.textContent = msg || "";
+    els.quickAddInput.toggleAttribute("aria-invalid", Boolean(msg));
+    els.quickAddInput.classList.toggle("is-invalid", Boolean(msg));
+  };
 
-    // Update Charts with actual data
-    const updateCharts = (timeRange = "week") => {
-        const stats = calculateChartData(timeRange);
-        const { categoryChart, timelineChart } = window.charts;
+  const titleKey = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-        // Update Category Distribution
-        const categoryData = Object.entries(stats.categories);
-        categoryChart.updateOptions({
-            series: categoryData.map(([_, count]) => count),
-            labels: categoryData.map(
-                ([category, _]) => category.charAt(0).toUpperCase() + category.slice(1)
-            ),
-        });
+  const syncAddButton = () => {
+    const ok = Boolean(els.quickAddInput.value.trim());
+    if (els.addBtn) els.addBtn.disabled = !ok;
+    if (ok) setAddError("");
+  };
 
-        // Update Timeline
-        const timelineData = Object.entries(stats.timeline)
-            .map(([date, count]) => ({
-                x: new Date(date).getTime(),
-                y: count,
-            }))
-            .sort((a, b) => a.x - b.x);
+  els.quickAddInput.addEventListener("input", syncAddButton);
+  syncAddButton();
 
-        timelineChart.updateSeries([
-            {
-                name: "Completed Tasks",
-                data: timelineData,
-            },
-        ]);
-    };
+  els.quickAddForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const title = els.quickAddInput.value.trim();
+    if (!title) {
+      setAddError("Title is required.");
+      els.quickAddInput.focus();
+      return;
+    }
+    const key = titleKey(title);
+    const dup = state.tasks.some((t) => !t.done && titleKey(t.title) === key);
+    if (dup) {
+      setAddError("Duplicate task (already in your list).");
+      els.quickAddInput.focus();
+      return;
+    }
+    addTask(els.quickAddInput.value, {
+      priority: els.priorityInput?.value || "medium",
+      dueDate: els.dueInput?.value || "",
+      dueTime: els.timeInput?.value || "",
+    });
+    els.quickAddInput.value = "";
+    if (els.priorityInput) els.priorityInput.value = "medium";
+    if (els.dueInput) els.dueInput.value = "";
+    if (els.timeInput) els.timeInput.value = "";
+    setPriorityUI("medium");
+    if (els.dueValue) els.dueValue.textContent = fmtDueLabel("");
+    if (els.timeValue) els.timeValue.textContent = fmtTimeLabel("");
+    if (els.addBtn) els.addBtn.disabled = true;
+    els.quickAddInput.focus();
+  });
 
-    // Event Listeners for timeline filter
-    document.querySelectorAll(".timeline-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            document.querySelector(".timeline-btn.active").classList.remove("active");
-            btn.classList.add("active");
-            updateCharts(btn.dataset.range);
-        });
+  for (const btn of els.filterBtns) {
+    btn.addEventListener("click", () => setFilter(btn.dataset.filter));
+  }
+
+  els.searchInput.addEventListener("input", () => {
+    state.q = els.searchInput.value;
+    render();
+  });
+
+  // priority filter dropdown (replaces sort)
+  if (els.priorityFilterBtn && els.priorityFilterDropdown && els.priorityFilterMenu) {
+    els.priorityFilterBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleDropdown(els.priorityFilterDropdown, els.priorityFilterBtn, els.priorityFilterMenu);
     });
 
-    // Initialize charts and update them whenever tasks change
-    const initializeStatistics = () => {
-        window.charts = initializeCharts();
-        updateCharts("week");
-    };
+    els.priorityFilterMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest(".drop-item");
+      if (!btn) return;
+      const val = btn.dataset.value;
+      if (!val) return;
+      state.priority = val;
+      if (els.priorityFilterValue) els.priorityFilterValue.textContent = PRIORITY_FILTER_LABEL[val] || "Priority: All";
+      for (const item of $$(".drop-item", els.priorityFilterMenu)) {
+        const isActive = item.dataset.value === val;
+        item.classList.toggle("is-active", isActive);
+        item.setAttribute("aria-selected", isActive ? "true" : "false");
+      }
+      closeDropdown(els.priorityFilterDropdown, els.priorityFilterBtn);
+      render();
+    });
+  }
 
-    // Call this function whenever tasks are modified
-    const onTasksChanged = () => {
-        updateCharts(document.querySelector(".timeline-btn.active").dataset.range);
-    };
+  // priority dropdowns
+  if (els.priorityBtn && els.priorityDropdown && els.priorityMenu) {
+    els.priorityBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleDropdown(els.priorityDropdown, els.priorityBtn, els.priorityMenu);
+    });
+    els.priorityMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest(".drop-item");
+      if (!btn) return;
+      const val = btn.dataset.value;
+      if (!val) return;
+      setPriorityUI(val);
+      closeDropdown(els.priorityDropdown, els.priorityBtn);
+      els.priorityBtn.focus();
+    });
+  }
+
+  if (els.editPriorityBtn && els.editPriorityDropdown && els.editPriorityMenu) {
+    els.editPriorityBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleDropdown(els.editPriorityDropdown, els.editPriorityBtn, els.editPriorityMenu);
+    });
+    els.editPriorityMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest(".drop-item");
+      if (!btn) return;
+      const val = btn.dataset.value;
+      if (!val) return;
+      setPriorityUI(val, "edit");
+      closeDropdown(els.editPriorityDropdown, els.editPriorityBtn);
+      els.editPriorityBtn.focus();
+    });
+  }
+
+  // date pickers
+  initDatePicker("add");
+  initDatePicker("edit");
+  initTimePicker("add");
+  initTimePicker("edit");
+
+  // close any open dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".dropdown")) return;
+    closeAllDropdowns();
+  });
+
+  els.taskList.addEventListener("click", (e) => {
+    const li = e.target.closest(".task");
+    if (!li) return;
+    const id = Number(li.dataset.id);
+    if (!Number.isFinite(id)) return;
+
+    const actionBtn = e.target.closest("[data-action]");
+    if (actionBtn) {
+      const action = actionBtn.dataset.action;
+      if (action === "toggle") {
+        const task = state.tasks.find((t) => t.id === id);
+        if (!task) return;
+        updateTask(id, { done: !task.done });
+        return;
+      }
+      if (action === "edit") openEdit(id);
+      if (action === "delete") {
+        const task = state.tasks.find((t) => t.id === id);
+        if (!task) return;
+        const title = task.title.length > 80 ? `${task.title.slice(0, 80)}…` : task.title;
+        openConfirm({ type: "deleteTask", taskId: id, message: `Delete “${title}”?` });
+      }
+      return;
+    }
+  });
+
+  els.clearDoneBtn.addEventListener("click", () => {
+    const done = state.tasks.some((t) => t.done);
+    if (!done) return;
+    openConfirm({ type: "clearDone" });
+  });
+
+  els.resetBtn.addEventListener("click", () => {
+    openConfirm({ type: "resetAll" });
+  });
+
+  els.editForm.addEventListener("submit", (e) => {
+    // method="dialog" submits on any button; use submitter.value to decide
+    const submitter = e.submitter;
+    const val = submitter?.value || "cancel";
+    if (val !== "save") {
+      closeEdit();
+      return;
+    }
+
+    e.preventDefault();
+    const id = state.editingId;
+    if (!id) return;
+    const title = els.editTitle.value.trim();
+    if (!title) {
+      els.editTitle.focus();
+      return;
+    }
+    updateTask(id, {
+      title,
+      notes: els.editNotes.value.trim(),
+      priority: els.editPriority?.value || "medium",
+      dueDate: els.editDue?.value || "",
+      dueTime: els.editTime?.value || "",
+    });
+    closeEdit();
+  });
+
+  if (els.confirmForm) {
+    els.confirmForm.addEventListener("submit", (e) => {
+      const submitter = e.submitter;
+      const val = submitter?.value || "cancel";
+      if (val !== "confirm") {
+        closeConfirm();
+        return;
+      }
+      e.preventDefault();
+      const c = state.confirm;
+      if (!c) return;
+      if (c.type === "deleteTask" && c.taskId) deleteTask(c.taskId);
+      if (c.type === "clearDone") clearDone();
+      if (c.type === "resetAll") resetAll();
+      closeConfirm();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAllDropdowns();
+      closeConfirm();
+    }
+    if (e.key === "/" && document.activeElement !== els.searchInput) {
+      e.preventDefault();
+      els.searchInput.focus();
+      return;
+    }
+    if (e.key.toLowerCase() === "n" && document.activeElement !== els.quickAddInput) {
+      // avoid hijacking typing in inputs/textareas/dialog
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      e.preventDefault();
+      els.quickAddInput.focus();
+    }
+  });
+
+  // Init
+  initTheme();
+  load();
+  setPriorityUI("medium");
+  render();
+})();
 
 
-
-
-    // ----------------------------------------------------------------------
-    // --- Initialization  Statistics---
-    // ----------------------------------------------------------------------
-
-    initializeStatistics();
-
-    // ----------------------------------------------------------------------
-    // --- Initialization ---
-    // ----------------------------------------------------------------------
-
-    initializeTheme();
-    updateTaskCount();
-    populateCategorySelect();
-    populateCategoryFilter();
-    switchView(currentView); // Show initial view, then renderTasks from switchView
-});
