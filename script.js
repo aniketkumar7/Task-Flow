@@ -300,9 +300,10 @@
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const diffDays = Math.round((d - today) / (1000 * 60 * 60 * 24));
-      if (diffDays === 0) return "Due: Today";
-      if (diffDays === 1) return "Due: Tomorrow";
-      if (diffDays === -1) return "Due: Yesterday";
+      const timeSuffix = dueTime ? ` ${formatTimeDisplay(dueTime)}` : "";
+      if (diffDays === 0) return `Due: Today${timeSuffix}`;
+      if (diffDays === 1) return `Due: Tomorrow${timeSuffix}`;
+      if (diffDays === -1) return `Due: Yesterday${timeSuffix}`;
       const pretty = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       return `Due: ${pretty}${dueTime ? ` ${formatTimeDisplay(dueTime)}` : ""}`;
     })();
