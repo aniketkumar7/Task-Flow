@@ -57,78 +57,74 @@
         </header>
 
         <section class="composer" aria-label="Add task">
-            <form id="quickAddForm" class="composer-row" autocomplete="off">
-                <input id="quickAddInput" class="input" type="text" placeholder="Add a task… (Enter)" aria-describedby="addError" />
-            </form>
-            <div class="form-error" id="addError" role="status" aria-live="polite"></div>
-            <div class="composer-extra" aria-label="Task details">
+            <div class="composer-grid" aria-label="Task details">
+                <form id="quickAddForm" autocomplete="off">
+                    <input id="quickAddInput" class="input" type="text" placeholder="Add a task… (Enter)" aria-describedby="addError" />
+                </form>
+
                 <div class="dropdown" id="priorityDropdown">
-                    <button id="priorityBtn" class="drop-btn" type="button" aria-haspopup="listbox"
-                        aria-expanded="false">
+                    <button id="priorityBtn" class="drop-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
                         <span class="drop-value" id="priorityValue">Priority: Medium</span>
                         <span class="drop-caret" aria-hidden="true"></span>
                     </button>
                     <div id="priorityMenu" class="drop-menu" role="listbox" aria-label="Priority" tabindex="-1">
-                        <button class="drop-item" type="button" role="option" aria-selected="false"
-                            data-value="high">Priority: High</button>
-                        <button class="drop-item is-active" type="button" role="option" aria-selected="true"
-                            data-value="medium">Priority: Medium</button>
-                        <button class="drop-item" type="button" role="option" aria-selected="false"
-                            data-value="low">Priority: Low</button>
+                        <button class="drop-item" type="button" role="option" aria-selected="false" data-value="high">Priority: High</button>
+                        <button class="drop-item is-active" type="button" role="option" aria-selected="true" data-value="medium">Priority: Medium</button>
+                        <button class="drop-item" type="button" role="option" aria-selected="false" data-value="low">Priority: Low</button>
                     </div>
                 </div>
-                <div class="due-time">
-                    <div class="dropdown datepick" id="dueDropdown">
-                        <button id="dueBtn" class="drop-btn" type="button" aria-haspopup="dialog"
-                            aria-expanded="false">
-                            <span class="drop-value" id="dueValue">Due: None</span>
-                            <span class="drop-caret" aria-hidden="true"></span>
-                        </button>
-                        <div id="dueMenu" class="date-menu" role="dialog" aria-label="Pick due date" tabindex="-1">
-                            <div class="date-head">
-                                <button class="btn date-nav" type="button" id="duePrev"
-                                    aria-label="Previous month">‹</button>
-                                <div class="date-month" id="dueMonth">Month</div>
-                                <button class="btn date-nav" type="button" id="dueNext" aria-label="Next month">›</button>
-                            </div>
-                            <div class="date-dow">
-                                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-                            </div>
-                            <div class="date-grid" id="dueGrid"></div>
-                            <div class="date-actions">
-                                <button class="btn" type="button" id="dueToday">Today</button>
-                                <button class="btn danger" type="button" id="dueClear">Clear</button>
-                            </div>
+
+                <input id="notesInput" class="input notes" type="text" placeholder="Notes (optional)" />
+
+                <div class="dropdown datepick" id="dueDropdown">
+                    <button id="dueBtn" class="drop-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="drop-value" id="dueValue">Due: None</span>
+                        <span class="drop-caret" aria-hidden="true"></span>
+                    </button>
+                    <div id="dueMenu" class="date-menu" role="dialog" aria-label="Pick due date" tabindex="-1">
+                        <div class="date-head">
+                            <button class="btn date-nav" type="button" id="duePrev" aria-label="Previous month">‹</button>
+                            <div class="date-month" id="dueMonth">Month</div>
+                            <button class="btn date-nav" type="button" id="dueNext" aria-label="Next month">›</button>
                         </div>
-                        <input id="dueInput" type="hidden" />
-                    </div>
-                    <div class="dropdown timepick" id="timeDropdown">
-                        <button id="timeBtn" class="drop-btn" type="button" aria-haspopup="dialog"
-                            aria-expanded="false">
-                            <span class="drop-value" id="timeValue">Time: None</span>
-                            <span class="drop-caret" aria-hidden="true"></span>
-                        </button>
-                        <div id="timeMenu" class="time-menu" role="dialog" aria-label="Pick time" tabindex="-1">
-                            <div class="time-top">
-                                <div class="time-hhmm" aria-label="Time">
-                                    <input id="timeHour" class="input time-box" inputmode="numeric" placeholder="HH"
-                                        aria-label="Hour" />
-                                    <span class="time-sep" aria-hidden="true">:</span>
-                                    <input id="timeMinute" class="input time-box" inputmode="numeric" placeholder="MM"
-                                        aria-label="Minute" />
-                                </div>
-                                <div class="ampm" role="group" aria-label="AM/PM">
-                                    <button class="ampm-btn is-on" type="button" id="timeAM" aria-pressed="true">AM</button>
-                                    <button class="ampm-btn" type="button" id="timePM" aria-pressed="false">PM</button>
-                                </div>
-                                <button class="btn danger" type="button" id="timeClear">Clear</button>
-                            </div>
+                        <div class="date-dow">
+                            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
                         </div>
-                        <input id="timeInput" type="hidden" />
+                        <div class="date-grid" id="dueGrid"></div>
+                        <div class="date-actions">
+                            <button class="btn" type="button" id="dueToday">Today</button>
+                            <button class="btn danger" type="button" id="dueClear">Clear</button>
+                        </div>
                     </div>
+                    <input id="dueInput" type="hidden" />
                 </div>
+
+                <div class="dropdown timepick" id="timeDropdown">
+                    <button id="timeBtn" class="drop-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="drop-value" id="timeValue">Time: None</span>
+                        <span class="drop-caret" aria-hidden="true"></span>
+                    </button>
+                    <div id="timeMenu" class="time-menu" role="dialog" aria-label="Pick time" tabindex="-1">
+                        <div class="time-top">
+                            <div class="time-hhmm" aria-label="Time">
+                                <input id="timeHour" class="input time-box" inputmode="numeric" placeholder="HH" aria-label="Hour" />
+                                <span class="time-sep" aria-hidden="true">:</span>
+                                <input id="timeMinute" class="input time-box" inputmode="numeric" placeholder="MM" aria-label="Minute" />
+                            </div>
+                            <div class="ampm" role="group" aria-label="AM/PM">
+                                <button class="ampm-btn is-on" type="button" id="timeAM" aria-pressed="true">AM</button>
+                                <button class="ampm-btn" type="button" id="timePM" aria-pressed="false">PM</button>
+                            </div>
+                            <button class="btn danger" type="button" id="timeClear">Clear</button>
+                        </div>
+                    </div>
+                    <input id="timeInput" type="hidden" />
+                </div>
+
                 <button id="addBtn" class="btn primary" type="submit" form="quickAddForm" disabled>Add</button>
             </div>
+
+            <div class="form-error" id="addError" role="status" aria-live="polite"></div>
             <div class="composer-hint" id="composerHint">
                 Tip: Press <kbd>/</kbd> to search, <kbd>n</kbd> to focus “Add”.
             </div>
@@ -171,7 +167,7 @@
                         <button class="drop-item" type="button" role="option" aria-selected="false"
                             data-value="medium">Medium</button>
                         <button class="drop-item" type="button" role="option" aria-selected="false"
-                            data-value="low">Priority: Low</button>
+                            data-value="low">Low</button>
                     </div>
                 </div>
                 <button id="clearDoneBtn" class="btn" type="button">Clear done</button>

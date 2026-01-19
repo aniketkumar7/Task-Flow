@@ -14,6 +14,7 @@
     quickAddForm: $("#quickAddForm"),
     quickAddInput: $("#quickAddInput"),
     addBtn: $("#addBtn"),
+    notesInput: $("#notesInput"),
     priorityInput: $("#priorityInput"), // legacy (may not exist)
     dueInput: $("#dueInput"),
     timeInput: $("#timeInput"),
@@ -196,7 +197,7 @@
     const task = /** @type {Task} */ ({
       id: Date.now(),
       title: t,
-      notes: "",
+      notes: String(details?.notes || "").trim(),
       priority: details?.priority || "medium",
       dueDate: details?.dueDate || "",
       dueTime: details?.dueTime || "",
@@ -293,7 +294,8 @@
 
     const dueLabel = (() => {
       if (!dueIso) return "";
-      const d = new Date(dueIso + "T00:00:00");
+      const d = parseIsoDateLocal(dueIso);
+      if (!d) return `Due: ${escapeHtml(dueIso)}`;
       if (Number.isNaN(d.getTime())) return `Due: ${escapeHtml(dueIso)}`;
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -307,7 +309,8 @@
 
     const dueState = (() => {
       if (!dueIso || task.done) return "";
-      const d = new Date(`${dueIso}T${dueTime || "00:00"}:00`);
+      const d = parseIsoDateTimeLocal(dueIso, dueTime || "00:00");
+      if (!d) return "";
       if (Number.isNaN(d.getTime())) return "";
       const now = new Date();
       const diffHours = (d - now) / (1000 * 60 * 60);
@@ -319,12 +322,6 @@
     const iconCheck = `
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
         <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `;
-
-    const iconCircle = `
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
       </svg>
     `;
 
@@ -351,7 +348,7 @@
           <div class="task-actions">
             <button class="icon-action toggle ${task.done ? "is-on" : ""}" type="button" data-action="toggle"
               aria-label="${task.done ? "Mark as not done" : "Mark as done"}" aria-pressed="${task.done ? "true" : "false"}">
-              ${task.done ? iconCheck : iconCircle}
+              ${iconCheck}
             </button>
             <button class="icon-action" type="button" data-action="edit" aria-label="Edit task">
               ${iconPencil}
@@ -442,6 +439,32 @@
     return d.toLocaleString(undefined, { month: "long", year: "numeric" });
   }
 
+  function isoDateLocal(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseIsoDateLocal(iso) {
+    const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mon = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    return new Date(y, mon, d);
+  }
+
+  function parseIsoDateTimeLocal(dateIso, timeHHMM) {
+    const d = parseIsoDateLocal(dateIso);
+    if (!d) return null;
+    const tm = String(timeHHMM || "").match(/^(\d{1,2}):(\d{2})$/);
+    const hh = tm ? Number(tm[1]) : 0;
+    const mm = tm ? Number(tm[2]) : 0;
+    d.setHours(hh, mm, 0, 0);
+    return d;
+  }
+
   function fmtDueLabel(iso) {
     if (!iso) return "Due: None";
     return `Due: ${iso}`;
@@ -479,8 +502,9 @@
     menuEl.style.left = "0px";
     menuEl.style.top = "0px";
     menuEl.style.maxWidth = `min(360px, calc(100vw - 24px))`;
-    menuEl.style.maxHeight = `calc(100vh - 24px)`;
-    menuEl.style.overflow = "auto";
+    const isDate = menuEl.classList?.contains?.("date-menu");
+    menuEl.style.maxHeight = isDate ? `calc(100vh - 24px)` : "none";
+    menuEl.style.overflow = isDate ? "auto" : "visible";
 
     const rect = btnEl.getBoundingClientRect();
     const menuRect = menuEl.getBoundingClientRect();
@@ -513,16 +537,14 @@
     for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, monthIndex, d));
     while (cells.length % 7 !== 0) cells.push(null);
 
-    const selected = selectedIso ? new Date(selectedIso + "T00:00:00") : null;
+    const selected = selectedIso ? parseIsoDateLocal(selectedIso) : null;
     const today = new Date();
-    const todayIso = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      .toISOString()
-      .slice(0, 10);
+    const todayIso = isoDateLocal(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
 
     gridEl.innerHTML = cells
       .map((cell) => {
         if (!cell) return `<span class="day is-empty" aria-hidden="true"></span>`;
-        const iso = cell.toISOString().slice(0, 10);
+        const iso = isoDateLocal(cell);
         const isToday = iso === todayIso;
         const isSelected =
           selected &&
@@ -609,7 +631,7 @@
 
     todayEl?.addEventListener("click", () => {
       const t = new Date();
-      const iso = new Date(t.getFullYear(), t.getMonth(), t.getDate()).toISOString().slice(0, 10);
+      const iso = isoDateLocal(new Date(t.getFullYear(), t.getMonth(), t.getDate()));
       inputEl.value = iso;
       valueEl.textContent = fmtDueLabel(iso);
       closeDropdown(dropdownEl, btnEl);
@@ -858,11 +880,13 @@
       priority: els.priorityInput?.value || "medium",
       dueDate: els.dueInput?.value || "",
       dueTime: els.timeInput?.value || "",
+      notes: els.notesInput?.value || "",
     });
     els.quickAddInput.value = "";
     if (els.priorityInput) els.priorityInput.value = "medium";
     if (els.dueInput) els.dueInput.value = "";
     if (els.timeInput) els.timeInput.value = "";
+    if (els.notesInput) els.notesInput.value = "";
     setPriorityUI("medium");
     if (els.dueValue) els.dueValue.textContent = fmtDueLabel("");
     if (els.timeValue) els.timeValue.textContent = fmtTimeLabel("");
